@@ -1,0 +1,15 @@
+# Never commit the data or the secrets: the repository has to be public for free GitHub Pages.
+*.db
+*.db-journal
+cache/
+site/
+schema.json
+skipped.log
+debug_post_*.txt
+preview/
+.site_salt
+removals.csv
+*.csv
+*.xlsx
+__pycache__/
+.DS_Store

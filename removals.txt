@@ -1,0 +1,2 @@
+# Athletes to leave off the site: one public id per line (the 10 characters after /a/ or /p/ in a link).
+# Edit this file on github.com and commit: the site is rebuilt within minutes.
