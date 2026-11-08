@@ -164,6 +164,23 @@ function chartSVG(pts, d) {
     <text class="lbl" x="${bx.toFixed(1)}" y="${(Y(best.value) - 12).toFixed(1)}" text-anchor="middle">${esc(best.mark)}</text></svg>`;
 }
 
+function medalList(rows) {
+  return `<ul class="medals">${rows.map(([y, d, p, meet, intl, mark]) => `<li><span class="medal p${p}">${p}</span><span><strong class="num">${y}</strong> ${esc(dName(d))}${D(d)[0] ? " (salle)" : ""}, ${esc(meet)}${mark ? ` <span class="num muted">${esc(mark)}</span>` : ""}</span></li>`).join("")}</ul>`;
+}
+
+function medalCount(rows) {
+  const n = [1, 2, 3].map(p => rows.filter(m => m[2] === p).length);
+  return [["or", n[0]], ["argent", n[1]], ["bronze", n[2]]].filter(x => x[1]).map(([w, c]) => `${c} ${w}`).join(", ");
+}
+
+function honours(m) {
+  const intl = m.filter(x => x[4] === 1), nat = m.filter(x => x[4] !== 1);
+  return `<h2>Palmarès</h2>
+    ${intl.length ? `<h3>Championnats internationaux <span class="muted">· ${medalCount(intl)}</span></h3>${medalList(intl)}` : ""}
+    ${nat.length ? `<h3>Championnats suisses <span class="muted">· ${medalCount(nat)}</span></h3>${medalList(nat)}` : ""}
+    <p class="note">Podiums en finale relevés automatiquement d'après le nom des compétitions (championnats suisses de toutes catégories, championnats d'Europe et du monde, Jeux olympiques, Universiades, masters) : à vérifier.</p>`;
+}
+
 async function profile(id) {
   const a = await loadAthlete(id);
   if (!a) return notFound("Cet athlète n'est pas (ou plus) dans la base.");
@@ -179,12 +196,15 @@ async function profile(id) {
   app.innerHTML = `
     <section class="profile-head">
       <h1>${esc(a.n)}</h1>
+      ${(a.k || []).length ? `<div class="badges">${a.k.map(([code, group, wcp]) => `<a class="badge" href="#/cadres">${esc((META.cadres || {})[code] || code)}${wcp ? " · World Class Potential" : ""}</a>`).join("")}</div>` : ""}
       <div class="facts">
         <span>${a.s === "W" ? "Née" : "Né"} en <strong class="num">${a.by}</strong></span>
         ${a.c ? `<span>Club <strong>${esc(a.c)}</strong></span>` : ""}
         ${a.cs.length > 1 ? `<span>Avant : ${a.cs.slice(0, -1).reverse().map(esc).join(", ")}</span>` : ""}
         ${a.pg ? `<span><a href="p/${id}.html">Lien à partager</a></span>` : ""}
       </div>
+      ${(a.lim || []).length ? `<p class="limit">${esc((META.limit_name || "").replace(/^Limites/, "Limite"))} ${META.limit_year} réalisée : ${a.lim.map(([ev, mark, lim, date, indoor]) =>
+        `<strong>${esc(ev)} ${esc(mark)}</strong>${indoor ? " (salle)" : ""} <span class="muted">(limite ${esc(lim)})</span>`).join(", ")}. <a href="#/cadres">Voir les cadres</a></p>` : ""}
       <div id="cmp" class="compare"></div>
     </section>
     <h2>Records personnels</h2>
@@ -192,9 +212,7 @@ async function profile(id) {
       ${out.length ? `<div><h3>Plein air</h3>${pbLanes(out)}</div>` : ""}
       ${ins.length ? `<div><h3>En salle</h3>${pbLanes(ins)}</div>` : ""}
     </div>` : `<p class="empty">Aucune performance régulière.</p>`}
-    ${a.m.length ? `<h2>Podiums aux championnats suisses</h2>
-      <ul class="medals">${a.m.map(([y, d, p, meet]) => `<li><span class="medal p${p}">${p}</span><span><strong class="num">${y}</strong> ${esc(dName(d))}${D(d)[0] ? " (salle)" : ""}, ${esc(meet)}</span></li>`).join("")}</ul>
-      <p class="note">Relevé automatique d'après le nom des compétitions et le rang en finale : à vérifier.</p>` : ""}
+    ${a.m.length ? honours(a.m) : ""}
     ${progDiscs.length ? `<h2>Progression</h2>
       <div class="controls"><label>Épreuve <select id="pd">${progDiscs.map(d => `<option value="${d}">${esc(dName(d))}${D(d)[0] ? " (salle)" : ""}</option>`).join("")}</select></label></div>
       <div id="chart"></div>` : ""}
@@ -326,6 +344,40 @@ async function lists(year, io, sex) {
   app.querySelector("#ly").addEventListener("change", e => { location.hash = href(e.target.value, io, sex); });
 }
 
+async function cadresPage() {
+  document.title = `Cadres nationaux – ${META.title}`;
+  let c;
+  try { c = await getJSON("cadres.json"); } catch { return notFound("Les cadres ne sont pas disponibles."); }
+  const who = (id, n, by) => `<a href="${athleteHref(id, n)}">${esc(n)}</a> <span class="muted num">${by}</span>`;
+  const sec = k => {
+    const groups = [...new Set(k.members.map(m => m[4]))];
+    return `<section class="list-sec"><h2>${esc(k.name)}</h2>
+      <p class="note">${esc(k.desc || "")}. Liste officielle de Swiss Athletics du ${fmtDate(k.date)} (<a href="${esc(k.source)}" rel="noopener">PDF</a>) : ${k.listed} athlètes.
+      ${k.minors ? `${k.minors} ont moins de ${META.min_age} ans et ne sont pas affichés ici.` : ""}
+      ${k.missing ? `${k.missing} sans profil trouvé dans les résultats.` : ""}${k.marker ? ` ★ = ${esc(k.marker)}.` : ""}</p>
+      <div class="cols">${groups.map(g => `<div><h3>${esc(g)}</h3><ul class="plain">${k.members.filter(m => m[4] === g).map(([id, n, by, club, grp, wcp]) =>
+        `<li>${who(id, n, by)}${wcp ? " ★" : ""}${club ? ` <span class="muted">· ${esc(club)}</span>` : ""}</li>`).join("")}</ul></div>`).join("")}</div></section>`;
+  };
+  const L = c.limits;
+  const inCadre = codes => codes.map(x => `<span class="tag pb">${esc(x === "SS" ? "Swiss Starters" : x === "SSF" ? "SS Future" : x)}</span>`).join("");
+  app.innerHTML = `
+    <section class="profile-head">
+      <h1>Cadres nationaux</h1>
+      <p class="lede">Les cadres officiels de Swiss Athletics${L ? `, et les athlètes suisses qui ont réalisé une limite Swiss Starters en ${L.year}` : ""}.</p>
+    </section>
+    ${c.cadres.map(sec).join("")}
+    ${L ? `<section class="list-sec"><h2>${esc(L.name)} ${L.year}</h2>
+      <p class="note">Limites à réaliser en ${L.year} pour le cadre ${esc(L.for)} (<a href="${esc(L.source)}" rel="noopener">PDF Swiss Athletics</a>). Ici : athlètes de nationalité suisse, meilleure performance ${L.year} avec vent régulier et chronométrage électronique, salle comprise. Atteindre une limite ne garantit pas la sélection.</p>
+      <div class="tbl-wrap"><table><thead><tr><th>Épreuve</th><th>Athlète</th><th class="r">Perf.</th><th class="r">Limite</th><th class="hide-s">Date</th><th class="hide-s">Cadre</th></tr></thead>
+      <tbody>${L.achieved.length ? L.achieved.map(([id, n, by, club, sex, i, ev, mark, lim, date, indoor, codes]) =>
+        `<tr><td>${esc(ev)}${indoor ? " (salle)" : ""}</td><td>${who(id, n, by)}</td><td class="mk r">${esc(mark)}</td><td class="r num">${esc(lim)}</td><td class="dt hide-s">${fmtDate(date)}</td><td class="hide-s">${inCadre(codes)}</td></tr>`).join("")
+        : `<tr><td colspan="6" class="empty">Personne pour l'instant.</td></tr>`}</tbody></table></div>
+      <h3>Les limites</h3>
+      <div class="tbl-wrap"><table><thead><tr><th>Épreuve</th><th class="r">Hommes</th><th class="r">Femmes</th></tr></thead>
+      <tbody>${L.events.map(([ev, m, w, checked]) => `<tr><td>${esc(ev)}${checked ? "" : ' <span class="muted">(pas dans les données)</span>'}</td><td class="r num">${esc(m)}</td><td class="r num">${esc(w)}</td></tr>`).join("")}</tbody></table></div>
+    </section>` : ""}`;
+}
+
 function notFound(msg) {
   document.title = META ? META.title : document.title;
   app.innerHTML = `<section class="hero"><h1>Introuvable</h1><p class="lede">${esc(msg)}</p><p><a href="#/">Retour à la recherche</a></p></section>`;
@@ -335,13 +387,14 @@ function notFound(msg) {
 async function route() {
   const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   document.querySelectorAll(".top-nav a").forEach(x => x.removeAttribute("aria-current"));
-  const nav = document.querySelector(`.top-nav a[href="${parts[0] === "l" ? "#/l" : "#/"}"]`);
-  if (nav && (parts[0] === "l" || !parts.length)) nav.setAttribute("aria-current", "page");
+  const nav = document.querySelector(`.top-nav a[href="${parts[0] === "l" ? "#/l" : parts[0] === "cadres" ? "#/cadres" : "#/"}"]`);
+  if (nav && (parts[0] === "l" || parts[0] === "cadres" || !parts.length)) nav.setAttribute("aria-current", "page");
   window.scrollTo(0, 0);
   try {
     if (parts[0] === "a" && parts[1]) await profile(parts[1]);
     else if (parts[0] === "h2h" && parts[1] && parts[2]) await h2h(parts[1], parts[2]);
     else if (parts[0] === "l") await lists(parts[1], parts[2], parts[3]);
+    else if (parts[0] === "cadres") await cadresPage();
     else home();
   } catch (err) {
     console.error(err);
