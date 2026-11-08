@@ -21,7 +21,7 @@ The workflow `.github/workflows/update.yml` starts every night at 03:17 (Swiss w
 3. Saves the database again (keeps the 2 newest copies) and records `status.json` in the repository.
 4. Builds the site with `build_site.py` and publishes it on GitHub Pages.
 
-Changing the site code, `build_site.py` or `removals.txt` on the main branch rebuilds and publishes
+Changing the site code, `build_site.py`, `cadres.json` or `removals.txt` on the main branch rebuilds and publishes
 the site from the stored data, without downloading anything.
 
 ## Everyday tasks (all from a phone)
@@ -32,6 +32,7 @@ the site from the stored data, without downloading anything.
 | Remove an athlete on request | Copy the 10 characters after `/a/` or `/p/` in their link into `removals.txt`, commit |
 | Download the current season now | Actions > Update data and site > Run workflow, tick "force refresh" |
 | Rebuild the site only | Actions > Update data and site > Run workflow, mode "publish" |
+| New cadre lists or limits (each autumn) | Edit `cadres.json`: replace the athletes rows, the dates and the PDF links (or ask Claude) |
 | Something failed | GitHub emails you; the run page shows the reason at the bottom of the step that failed |
 
 ## Privacy
@@ -53,6 +54,7 @@ the site from the stored data, without downloading anything.
 | `build_site.py` | Turns the database into the static site (streams from SQLite, about 140 MB of memory) |
 | `web/` | The page itself: `index.html`, `app.js`, `style.css`, fonts |
 | `make_demo_db.py` | Fake database to preview the site without real data |
+| `cadres.json` | Official Swiss Athletics cadre lists (Swiss Starters, Swiss Starters Future) and Swiss Starters limits, shown on profiles and the Cadres page |
 
 ## One-time setup (already done for pmcintyr/athletes)
 

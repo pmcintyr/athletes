@@ -127,20 +127,52 @@ def r1(v, nd=1):
     return None if v is None else round(float(v), nd)
 
 
+# International championships: Olympics, World and European championships of every age group, Universiade,
+# youth Olympic events, masters, para and military world championships. Team events, cups, tours and trials are not.
+INTL_RE = re.compile(r"""(
+   \bolympic\ games\b | youth\ olympic\ games | european\ youth\ olympic\ festival | \beyof\b
+ | world\ (athletics\ )?(indoor\ )?championships? | world\ (athletics\ )?u(18|20)\ championships | u(18|20)\ world\ championships
+ | world\ (junior|youth)\ championships | world\ indoor\ championships?
+ | european\ (athletics\ )?(indoor\ )?championships? | u(18|20|23)\ european\ championships | european\ athletics\ u(18|20|23)\ championships
+ | european\ (junior|youth)\ championships
+ | universiade | world\ university\ games | military\ world\ games | cism\ -\ weltmeisterschaften | jeux\ de\ la\ francophonie
+ | world\ masters?\ (athletics\ |atl\.\ |athl\.\ )?(indoor\ )?champ | masters\ world\ (indoor\ )?championships? | wma\ world
+ | european\ masters\ athletics\ (stadia\ )?championships | masters\ european\ (indoor\ )?championships? | master\ european\ championship
+ | european\ veterans\ (athletics\ )?champ | evaa\ european\ veterans
+ | para\ athletics\ european\ championships | world\ para\ athletics\ championships | ipc\ athletics\ world | world\ deaf\ athletics
+)""", re.X)
+INTL_NOT = re.compile(r"team|club|cup|tour|relays|trials|private|virtual|ultra|iaum|post-|meeting|transplant|police|small states|"
+                      r"games 20|masters games|master european games")
+
+
+def is_international(meeting):
+    m = s(meeting).lower()
+    return bool(INTL_RE.search(m)) and not INTL_NOT.search(m)
+
+
 def is_championship(m):
     return any(p in m for p in CHAMPIONSHIP_PATTERNS) or bool(SM_RE.search(m))
 
 
-def is_medal(meeting, place, round_code, label=""):
+def medal_kind(meeting, place, round_code, label=""):
+    """1 = podium at an international championship, 0 = at a Swiss championship, None = no podium."""
+    if place is None or not 1 <= int(place) <= 3:
+        return None
+    rc = s(round_code).lower()
+    if not (rc == "" or rc.startswith("f")):  # finals only: heats (h) and series (r) are not medals
+        return None
+    if is_international(meeting):
+        return 1
     m = s(meeting).lower()
     if any(x in m for x in NOT_SWISS) or not is_championship(m):
-        return False
+        return None
     if not is_championship(SM_MK_RE.sub(" ", m)) and "kampf" not in s(label).lower():
-        return False  # the meeting's only championship is a combined-events one, and this is not a combined event
-    if place is None or not 1 <= int(place) <= 3:
-        return False
-    rc = s(round_code).lower()
-    return rc == "" or rc.startswith("f")  # finals only: heats (h) and series (r) are not medals
+        return None  # the meeting's only championship is a combined-events one, and this is not a combined event
+    return 0
+
+
+def is_medal(meeting, place, round_code, label=""):
+    return medal_kind(meeting, place, round_code, label) == 0
 
 
 def dump(path, obj):
@@ -262,17 +294,72 @@ def athlete(rows, M, L, C):
           for (d, season), r in sorted(best_by(rows, lambda r: (r["d"], r["season"])).items())]
     medals, seen = [], set()
     for r in rows:
-        if is_medal(r["meeting"], r["place"], r["round"], r["label"]):
+        kind = medal_kind(r["meeting"], r["place"], r["round"], r["label"])
+        if kind is not None:
             k = (r["season"], r["d"], r["meeting"])
             if k not in seen:
                 seen.add(k)
-                medals.append([r["season"], r["d"], r["place"], r["meeting"]])
+                meet = re.sub(r"\s*\((WRC|WCR)\)", "", r["meeting"]).strip()  # World Ranking Competition tag
+                medals.append([r["season"], r["d"], int(r["place"]), meet, kind, mark_text(r["mark"])])
+    medals.sort(key=lambda m: (-m[4], -m[0], m[2]))
     res = [[r["d"], r["date"], mark_text(r["mark"]), r1(r["wind"]), r["place"], r["round"], M(r["meeting"]),
             L(r["loc"]), C(r["club"]), r["assisted"]] for r in rows]
     prof = {"n": latest["name"], "by": latest["by"], "s": latest["sex"], "c": latest["club"], "cs": clubs[-6:],
-            "nat": latest["nat"], "pb": pb, "sb": sb, "m": sorted(medals, reverse=True), "r": res}
+            "nat": latest["nat"], "pb": pb, "sb": sb, "m": medals, "r": res}
     page = {"pb": [[r["d"], mark_text(r["mark"]), r1(r["wind"]), r["date"], r["meeting"], r["loc"]] for r in pbr]}
     return prof, page
+
+
+# ---------- official cadres (Swiss Athletics lists) and Swiss Starters limits ----------
+def limit_value(t):
+    parts = str(t).strip().split(":")
+    v = 0.0
+    for x in parts:
+        v = v * 60 + float(x)
+    return v
+
+
+class Cadres:
+    """cadres.json: the official cadre lists (name, birth year, club, group) and the Swiss Starters limits.
+    Athletes are matched by birth year and name (same words, or one name contained in the other with 2+ words)."""
+
+    def __init__(self, path):
+        f = Path(path) if path else None
+        self.data = json.loads(f.read_text(encoding="utf-8")) if f and f.exists() else {}
+        self.lists = self.data.get("cadres", [])
+        self.by_year = defaultdict(list)
+        for ci, c in enumerate(self.lists):
+            for ei, e in enumerate(c["athletes"]):
+                self.by_year[int(e[1])].append((ci, ei, frozenset(name_tokens(e[0]))))
+        self.members, self.matched, self.achieved = defaultdict(list), set(), []
+        lim = self.data.get("limits") or {}
+        self.year = lim.get("year")
+        self.events = [(n, ev["name"], sex, label, ev[sex], limit_value(ev[sex]))
+                       for n, ev in enumerate(lim.get("events", [])) for sex in ("M", "W") for label in ev["labels"].get(sex, [])]
+
+    def match(self, names, by):
+        toks = [frozenset(name_tokens(n)) for n in names]
+        found = []
+        for ci, ei, lt in self.by_year.get(int(by or 0), []):
+            if any(t == lt or (len(t & lt) >= 2 and (t <= lt or lt <= t)) for t in toks):
+                found.append((ci, ei))
+        return found
+
+    def limits_for(self, rows, sex, disc):
+        """Best mark per limit event in the limit year: legal wind, electronic timing, indoor marks included."""
+        best = {}
+        for r in rows:
+            if r["season"] != self.year or r["assisted"] or r["hand"]:
+                continue
+            indoor, lower, wind_event = disc[r["d"]][0], disc[r["d"]][3] == 1, disc[r["d"]][4]
+            if wind_event and not indoor and r["wind"] is None:
+                continue  # no wind reading: cannot be checked
+            for n, name, esex, label, text, val in self.events:
+                if esex == sex and label == r["label"] and (r["value"] <= val if lower else r["value"] >= val):
+                    if n not in best or r["sortv"] < best[n][0]:
+                        shown = name.split(" / ")[0 if sex == "M" else -1]  # "110 m haies / 100 m haies"
+                        best[n] = (r["sortv"], [n, shown[:1].upper() + shown[1:], mark_text(r["mark"]), text, r["date"], indoor])
+        return [v[1] for _, v in sorted(best.items())]
 
 
 # ---------- static HTML page per athlete (for search engines and link previews) ----------
@@ -280,14 +367,14 @@ PAGE = """<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name=
 <title>{name} ({by}) – {title}</title><meta name="description" content="{desc}">{canonical}
 <meta property="og:title" content="{name} ({by})"><meta property="og:description" content="{desc}"><link rel="stylesheet" href="../style.css"></head>
 <body><header class="top"><div class="wrap top-in"><a class="brand" href="../#/">{title}</a></div></header><main class="wrap">
-<section class="profile-head"><h1>{name}</h1><div class="facts"><span>{born} en <strong class="num">{by}</strong></span>{club}</div>
+<section class="profile-head"><h1>{name}</h1>{badges}<div class="facts"><span>{born} en <strong class="num">{by}</strong></span>{club}</div>
 <p class="cta"><a class="more" href="../#/a/{pid}/{slug}">Progression, tous les résultats et confrontations</a></p></section>
 <h2>Records personnels</h2><div class="cols">{lanes}</div>{medals}</main>
 <footer class="foot"><div class="wrap"><p>Site indépendant et non officiel. Résultats publics de Swiss Athletics (Alabus), mis à jour le {updated}.{contact}</p></div></footer></body></html>
 """
 
 
-def profile_page(pid, p, page, disc, title, base_url, contact, updated):
+def profile_page(pid, p, page, disc, title, base_url, contact, updated, cad_names=None):
     e = html.escape
     names = {i: (d[2] + (" (salle)" if d[0] else "")) for i, d in enumerate(disc)}
 
@@ -306,15 +393,20 @@ def profile_page(pid, p, page, disc, title, base_url, contact, updated):
     desc = f"Records personnels de {p['n']}" + (f" ({p['c']})" if p["c"] else "") + (f" : {best}." if best else ".")
     medals = ""
     if p["m"]:
-        li = "".join(f'<li><span class="medal p{m[2]}">{m[2]}</span><span><strong class="num">{m[0]}</strong> '
-                     f'{e(names[m[1]])}, {e(m[3])}</span></li>' for m in p["m"])
-        medals = f'<h2>Podiums aux championnats suisses</h2><ul class="medals">{li}</ul>'
+        def li(rows):
+            return "".join(f'<li><span class="medal p{m[2]}">{m[2]}</span><span><strong class="num">{m[0]}</strong> '
+                           f'{e(names[m[1]])}, {e(m[3])} <span class="num">{e(m[5])}</span></span></li>' for m in rows)
+        intl, nat = [m for m in p["m"] if m[4]], [m for m in p["m"] if not m[4]]
+        medals = ("<h2>Palmarès</h2>" + (f'<h3>Championnats internationaux</h3><ul class="medals">{li(intl)}</ul>' if intl else "")
+                  + (f'<h3>Championnats suisses</h3><ul class="medals">{li(nat)}</ul>' if nat else ""))
+    badges = "".join(f'<span class="badge">{e((cad_names or {}).get(k[0], k[0]))}</span>' for k in p.get("k", []))
+    badges = f'<div class="badges">{badges}</div>' if badges else ""
     return PAGE.format(
         name=e(p["n"]), by=p["by"], title=e(title), desc=e(desc), pid=pid, slug=slug(p["n"]),
         canonical=f'<link rel="canonical" href="{e(base_url)}p/{pid}.html">' if base_url else "",
         born="Née" if p["s"] == "W" else "Né", club=f'<span>Club <strong>{e(p["c"])}</strong></span>' if p["c"] else "",
         lanes=lanes(out, "Plein air") + lanes(ins, "En salle") or '<p class="empty">Aucune performance régulière.</p>',
-        medals=medals, updated=fmt_date(updated),
+        medals=medals, badges=badges, updated=fmt_date(updated),
         contact=f' Corriger ou retirer ce profil : <a href="mailto:{e(contact)}">{e(contact)}</a>.' if contact else "")
 
 
@@ -336,6 +428,8 @@ def build(a):
     if not n_ath:
         sys.exit("nothing left to publish after the privacy filters")
     disc = disciplines(con)
+    cadres = Cadres(a.cadres)
+    max_by = datetime.now().year - a.min_age
     print(f"{n_ath:,} athletes to publish ({minors:,} under {a.min_age} left out, {gone} removed on request)")
 
     for sub in ("a", "idx", "lists", "p"):
@@ -364,6 +458,18 @@ def build(a):
         nonlocal n_res
         prof, page = athlete(rows, *tables)
         n_res += len(rows)
+        ks = []
+        for ci, ei in cadres.match({r["name"] for r in rows if r["name"]}, prof["by"]):
+            c, e = cadres.lists[ci], cadres.lists[ci]["athletes"][ei]
+            ks.append([c["code"], e[3], e[4]])
+            cadres.members[ci].append([pid, prof["n"], prof["by"], prof["c"], e[3], e[4]])
+            cadres.matched.add((ci, ei))
+        if ks:
+            prof["k"] = ks
+        lim = cadres.limits_for(rows, prof["s"], disc) if cadres.year and prof["nat"] == "SUI" else []  # cadres are for Swiss athletes
+        if lim:
+            prof["lim"] = [x[1:] for x in lim]
+            cadres.achieved.extend([pid, prof["n"], prof["by"], prof["c"], prof["s"], *x, [k[0] for k in ks]] for x in lim)
         shard[pid] = prof
         entry = [pid, prof["n"], prof["by"], prof["c"], prof["s"]]
         for pref in {t[:2] for t in name_tokens(prof["n"]) if len(t) >= 2}:
@@ -372,7 +478,8 @@ def build(a):
             prof["pg"] = 1
             pids.append(pid)
             (out / "p" / f"{pid}.html").write_text(
-                profile_page(pid, prof, page, disc, a.title, a.base_url, a.contact, updated), encoding="utf-8")
+                profile_page(pid, prof, page, disc, a.title, a.base_url, a.contact, updated,
+                             {c["code"]: c["name"] for c in cadres.lists}), encoding="utf-8")
 
     for row in con.execute(q):
         (pid, d, date, mark, value, wind, place, rnd, meeting, loc, club, name, by, sex, nat, hand, lower, indoor,
@@ -396,6 +503,26 @@ def build(a):
     for pref, entries in index.items():
         dump(out / "idx" / f"{pref}.json", sorted(entries, key=lambda e: e[1]))
     print(f"profiles written ({time.time() - t0:.0f}s)")
+
+    # Cadres page: members with a public profile (adults), and who reached a Swiss Starters limit.
+    cad = {"cadres": [], "limits": None}
+    for ci, c in enumerate(cadres.lists):
+        adults = [(ei, e) for ei, e in enumerate(c["athletes"]) if int(e[1]) <= max_by]
+        missing = [e[0] for ei, e in adults if (ci, ei) not in cadres.matched]
+        cad["cadres"].append({k: c.get(k) for k in ("code", "name", "desc", "date", "source", "marker")} | {
+            "members": sorted(cadres.members[ci], key=lambda m: (m[4], norm_name(m[1]))),
+            "listed": len(c["athletes"]) + c.get("minors_not_stored", 0),
+            "minors": len(c["athletes"]) - len(adults) + c.get("minors_not_stored", 0), "missing": len(missing)})
+        print(f"{c['name']}: {len(cadres.members[ci])} profiles matched, "
+              f"{len(c['athletes']) - len(adults) + c.get('minors_not_stored', 0)} minors not shown"
+              + (f", not found: {', '.join(missing)}" if missing else ""))
+    if cadres.year:
+        L = cadres.data["limits"]
+        cad["limits"] = {k: L.get(k) for k in ("name", "year", "for", "source")} | {
+            "events": [[e["name"], e["M"], e["W"], int(bool(e["labels"].get("M") or e["labels"].get("W")))] for e in L["events"]],
+            "achieved": sorted(cadres.achieved, key=lambda x: (x[5], x[4], norm_name(x[1])))}
+        print(f"{L['name']} {cadres.year}: {len(cadres.achieved)} limits reached")
+    dump(out / "cadres.json", cad)
 
     # Season lists: best legal electronic mark per athlete, top N, equal marks share a rank.
     con.create_function("iswind", 2, lambda l, i: int(is_wind_event(l, i)), deterministic=True)
@@ -422,7 +549,9 @@ def build(a):
     dump(out / "meta.json", {
         "title": a.title, "contact": a.contact, "min_age": a.min_age, "list_n": a.list_n, "generated": updated,
         "last_result": s(last_result), "first_year": first_year, "years": years, "athletes": n_ath,
-        "results": n_res, "full_results": "allresults" in have, "disc": disc})
+        "results": n_res, "full_results": "allresults" in have, "disc": disc,
+        "cadres": {c["code"]: c["name"] for c in cadres.lists}, "limit_name": (cadres.data.get("limits") or {}).get("name"),
+        "limit_year": cadres.year})
 
     # Static files, search engines, custom domain.
     for f in (HERE / "web").rglob("*"):
@@ -476,6 +605,7 @@ def main():
     p.add_argument("--pages-years", type=int, default=10,
                    help="write a plain HTML page (for Google and link previews) for athletes with a result in the last N seasons")
     p.add_argument("--salt", default=".site_salt")
+    p.add_argument("--cadres", default=str(HERE / "cadres.json"), help="official cadre lists and limits")
     sys.exit(build(p.parse_args()))
 
 

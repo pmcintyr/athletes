@@ -1,0 +1,1810 @@
+{
+ "_about": "Official Swiss Athletics cadre lists and Swiss Starters limits, copied from the PDFs below. Athletes under 18 this year are not stored here (only counted), like everywhere on the site. Update when new lists are published (usually October/November): replace the athletes rows, the counts and the dates.",
+ "cadres": [
+  {
+   "code": "SS",
+   "name": "Swiss Starters 2027",
+   "desc": "Cadre national élite",
+   "date": "2026-11-02",
+   "source": "https://www.swiss-athletics.ch/fileadmin/user_upload/www.swiss-athletics.ch/leistungssport/foerderung/kader/cadre_swiss_starters.pdf",
+   "marker": "World Class Potentials",
+   "athletes": [
+    [
+     "Atcho-Jaquier Sarah",
+     1995,
+     "Lausanne-Sports Athlétisme",
+     "Sprint",
+     0
+    ],
+    [
+     "Bachmann Daryl",
+     2002,
+     "LAS Old Boys Basel",
+     "Sprint",
+     0
+    ],
+    [
+     "Bachmann Lea",
+     1996,
+     "LAS Old Boys Basel",
+     "Sauts",
+     0
+    ],
+    [
+     "Becerra Soraya",
+     2004,
+     "Lausanne-Sports Athlétisme",
+     "Sprint",
+     0
+    ],
+    [
+     "Bertényi Larissa",
+     2000,
+     "LC Brühl Leichtathletik",
+     "Haies",
+     0
+    ],
+    [
+     "Bonvin Julien",
+     1999,
+     "CA Sierre DSG",
+     "Haies",
+     0
+    ],
+    [
+     "Boss Sabrina",
+     2005,
+     "LV Thun",
+     "Lancers",
+     0
+    ],
+    [
+     "Brand Dany",
+     1996,
+     "LC Zürich",
+     "Haies",
+     0
+    ],
+    [
+     "Brotschi Haydn",
+     2004,
+     "LV Langenthal",
+     "Sprint",
+     0
+    ],
+    [
+     "Bürgi Céline",
+     1999,
+     "LV Thun",
+     "Sprint",
+     0
+    ],
+    [
+     "Buri Xenia",
+     2008,
+     "LC Kirchberg",
+     "Sprint",
+     1
+    ],
+    [
+     "Caligiuri Iris",
+     2003,
+     "Stade Genève",
+     "Sprint",
+     0
+    ],
+    [
+     "Del Ponte Ajla",
+     1996,
+     "US Ascona atletica",
+     "Sprint",
+     0
+    ],
+    [
+     "Di Tizio-Frey Géraldine",
+     1997,
+     "LK Zug",
+     "Sprint",
+     0
+    ],
+    [
+     "Disch Karin",
+     1997,
+     "LC Regensdorf",
+     "Haies",
+     0
+    ],
+    [
+     "Eghagha Akira",
+     2007,
+     "CHP Genève",
+     "Sprint",
+     0
+    ],
+    [
+     "Ehammer Simon",
+     2000,
+     "TV Teufen",
+     "Sauts",
+     0
+    ],
+    [
+     "Eichenberger Felix",
+     2001,
+     "LV Thun",
+     "Sauts",
+     0
+    ],
+    [
+     "Engondo Marithé",
+     2002,
+     "Lausanne-Sports Athlétisme",
+     "Sauts",
+     0
+    ],
+    [
+     "Fahr Annina",
+     1993,
+     "LAC TV Unterstrass",
+     "Haies",
+     0
+    ],
+    [
+     "Gendre Vincent",
+     2001,
+     "Athletica Veveyse",
+     "Sprint",
+     0
+    ],
+    [
+     "Giger Yasmin",
+     1999,
+     "LC Zürich",
+     "Haies",
+     0
+    ],
+    [
+     "Gubelmann Catia",
+     2001,
+     "LAC TV Unterstrass",
+     "Sprint",
+     0
+    ],
+    [
+     "Guignard Valérie",
+     2004,
+     "TV Länggasse Bern",
+     "Haies",
+     1
+    ],
+    [
+     "Hoenke Fabienne",
+     2004,
+     "LV Fricktal",
+     "Sprint",
+     0
+    ],
+    [
+     "Hoffmann Lore",
+     1996,
+     "ATHLE.ch",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Huber Andrin",
+     2004,
+     "TV Teufen",
+     "Épreuves multiples",
+     1
+    ],
+    [
+     "Hügli Leonie",
+     2005,
+     "LC Kirchberg",
+     "Lancers",
+     0
+    ],
+    [
+     "Hüsler Salome",
+     2002,
+     "Athletikzentrum Unterwalden",
+     "Haies",
+     0
+    ],
+    [
+     "Imsand Valentin",
+     2005,
+     "CS 13 Etoiles",
+     "Sauts",
+     1
+    ],
+    [
+     "Joseph Jason",
+     1998,
+     "LC Therwil",
+     "Haies",
+     0
+    ],
+    [
+     "Kälin Annik",
+     2000,
+     "AJ TV Landquart",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Kambundji Ditaji",
+     2002,
+     "STB Leichtathletik",
+     "Haies",
+     0
+    ],
+    [
+     "Kambundji Mujinga",
+     1992,
+     "STB Leichtathletik",
+     "Sprint",
+     0
+    ],
+    [
+     "Kora Salomé",
+     1994,
+     "LC Brühl Leichtathletik",
+     "Sprint",
+     0
+    ],
+    [
+     "Kouni Natacha",
+     2001,
+     "LC Zürich",
+     "Sprint",
+     0
+    ],
+    [
+     "Krummenacher Leon",
+     2006,
+     "Leichtathletik Kerns",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Küchler Fabio",
+     2004,
+     "TSV Rothenburg athletics",
+     "Haies",
+     0
+    ],
+    [
+     "Kyburz Matthias",
+     1990,
+     "LC Basel",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Lang Shirley",
+     2002,
+     "LC Therwil",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Le Guen Morgan",
+     1993,
+     "Together Athletics Club",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Lestrade Bradley",
+     2001,
+     "Lausanne-Sports Athlétisme",
+     "Sprint",
+     0
+    ],
+    [
+     "Liebl Aarno",
+     2005,
+     "STB Leichtathletik",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Lobalu Dominic",
+     1998,
+     "LC Brühl Leichtathletik",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Mazenauer Miryam",
+     2000,
+     "TV Teufen",
+     "Lancers",
+     0
+    ],
+    [
+     "Moser Angelica",
+     1997,
+     "LC Zürich",
+     "Sauts",
+     0
+    ],
+    [
+     "Mumenthaler Emile",
+     2007,
+     "CHP Genève",
+     "Sprint",
+     0
+    ],
+    [
+     "Mumenthaler Timothé",
+     2002,
+     "Stade Genève",
+     "Sprint",
+     0
+    ],
+    [
+     "Nägeli Lilly",
+     2003,
+     "LC Uster",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Oester Robin",
+     1999,
+     "LC Regensdorf",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Pelizza Ivan",
+     2000,
+     "LC Zürich",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Petrucciani Ricky",
+     2000,
+     "LC Zürich",
+     "Sprint",
+     0
+    ],
+    [
+     "Pointet Léonie",
+     2001,
+     "CA Riviera",
+     "Sprint",
+     0
+    ],
+    [
+     "Portmann Nino",
+     2000,
+     "LA Nidwalden",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Rabac Chloé",
+     2005,
+     "CA Riviera",
+     "Sprint",
+     0
+    ],
+    [
+     "Raess Jonas",
+     1994,
+     "LC Regensdorf",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Reais William Jeff",
+     1999,
+     "LC Zürich",
+     "Sprint",
+     0
+    ],
+    [
+     "Reinle Cynthia",
+     2000,
+     "TV Unterseen",
+     "Sprint",
+     0
+    ],
+    [
+     "Roland Mélanie",
+     1999,
+     "CA Belfaux",
+     "Sprint",
+     0
+    ],
+    [
+     "Rosamilia Valentina",
+     2003,
+     "BTV Aarau Athletics",
+     "Demi-fond et fond",
+     1
+    ],
+    [
+     "Röthlin Sandra",
+     1999,
+     "Athletikzentrum Unterwalden",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Sanchez Jil",
+     2007,
+     "TSV Steinen",
+     "Haies",
+     1
+    ],
+    [
+     "Scherrer Chiara",
+     1996,
+     "TG Hütten",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Sclabas Delia",
+     2000,
+     "Gerbersport",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Spitz Lionel",
+     2001,
+     "Adliswil Track Team",
+     "Sprint",
+     0
+    ],
+    [
+     "Stocker Vera",
+     2001,
+     "STB Leichtathletik",
+     "Haies",
+     0
+    ],
+    [
+     "Tahou Maëva",
+     2003,
+     "GAB Bellinzona",
+     "Sauts",
+     0
+    ],
+    [
+     "Trümpi Liana",
+     2004,
+     "LAV Glarus",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Van Camp Emma",
+     2004,
+     "Lausanne-Sports Athlétisme",
+     "Sprint",
+     0
+    ],
+    [
+     "Vancardo Veronica",
+     2000,
+     "CA Fribourg",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "von Jackowski Selina",
+     1997,
+     "LC Zürich",
+     "Haies",
+     0
+    ],
+    [
+     "Wernli Lena",
+     2001,
+     "LC Zürich",
+     "Haies",
+     0
+    ],
+    [
+     "Werro Audrey",
+     2004,
+     "CA Belfaux",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Wieland Simon",
+     2000,
+     "STB Leichtathletik",
+     "Lancers",
+     0
+    ],
+    [
+     "Wind Joceline",
+     2000,
+     "Biel/Bienne Athletics",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Wipfli Ramón",
+     2004,
+     "STB Leichtathletik",
+     "Demi-fond et fond",
+     1
+    ],
+    [
+     "Yirga Nahom",
+     2001,
+     "LC Zürich",
+     "Haies",
+     0
+    ]
+   ],
+   "minors_not_stored": 0
+  },
+  {
+   "code": "SSF",
+   "name": "Swiss Starters Future",
+   "desc": "Cadre national de la relève",
+   "date": "2026-10-01",
+   "source": "https://www.swiss-athletics.ch/fileadmin/user_upload/www.swiss-athletics.ch/leistungssport/foerderung/kader/kader_swiss_starters_future.pdf",
+   "marker": "World Class Potentials",
+   "athletes": [
+    [
+     "Acklin Lucia",
+     2006,
+     "LV Fricktal",
+     "Épreuves multiples",
+     1
+    ],
+    [
+     "Aeschbacher Fabian",
+     2006,
+     "Versoix Athlétisme",
+     "Sprint",
+     0
+    ],
+    [
+     "Amhof Cyrill",
+     2006,
+     "LC Luzern",
+     "Lancers",
+     0
+    ],
+    [
+     "Anker Mani",
+     2007,
+     "TV Länggasse Bern",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Antener Irina",
+     2005,
+     "TV Riehen",
+     "Haies",
+     0
+    ],
+    [
+     "Anyamele Stephanie",
+     2006,
+     "LC Zürich",
+     "Lancers",
+     0
+    ],
+    [
+     "Auf der Maur Flurina",
+     2006,
+     "LC Scharnachtal",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Baumgartner Meret",
+     2001,
+     "STB Leichtathletik",
+     "Haies",
+     0
+    ],
+    [
+     "Begum Ashik",
+     2007,
+     "LC Zürich",
+     "Sprint",
+     0
+    ],
+    [
+     "Betschart Fabio",
+     2008,
+     "LAR TV Rüti",
+     "Sprint",
+     0
+    ],
+    [
+     "Bichsel Linda",
+     2004,
+     "LV Thun",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Bielli Gianmarco",
+     2008,
+     "SAM Massagno",
+     "Sprint",
+     0
+    ],
+    [
+     "Birri Francis",
+     2007,
+     "LC Zürich",
+     "Lancers",
+     0
+    ],
+    [
+     "Blättler Nadine",
+     2008,
+     "Leichtathletik Kerns",
+     "Lancers",
+     0
+    ],
+    [
+     "Borin Giada",
+     2005,
+     "LAC TV Unterstrass",
+     "Lancers",
+     0
+    ],
+    [
+     "Borner Kilian",
+     2006,
+     "STB Leichtathletik",
+     "Haies",
+     0
+    ],
+    [
+     "Breuer Nils",
+     2007,
+     "TV Länggasse Bern",
+     "Haies",
+     0
+    ],
+    [
+     "Broggini Anton",
+     2006,
+     "Versoix Athlétisme",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Brügger Silvan",
+     2004,
+     "TV Zofingen LA",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Brügger Lionel",
+     2006,
+     "TV Zofingen LA",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Brügger David",
+     2008,
+     "TV Zofingen LA",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Büchel Seline",
+     2007,
+     "TV Wohlen AG",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Burkhard Romy",
+     2004,
+     "LV Fricktal",
+     "Sauts",
+     0
+    ],
+    [
+     "Burkhardt Nessa",
+     2007,
+     "US Yverdon",
+     "Sauts",
+     0
+    ],
+    [
+     "Cajeux Thierry",
+     2003,
+     "CABV Martigny",
+     "Haies",
+     0
+    ],
+    [
+     "Camiu Nino",
+     2008,
+     "TV Teufen",
+     "Haies",
+     0
+    ],
+    [
+     "Capaul Selina",
+     2006,
+     "BTV Chur Leichtathletik",
+     "Lancers",
+     0
+    ],
+    [
+     "Capol Tina",
+     2007,
+     "run + more 2025",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Chèvre Mathieu",
+     2004,
+     "FSG Bassecourt",
+     "Sprint",
+     0
+    ],
+    [
+     "Cividino Mégane",
+     2006,
+     "CEP Cortaillod",
+     "Haies",
+     0
+    ],
+    [
+     "Courtine Léo",
+     2008,
+     "CA Sion",
+     "Sauts",
+     0
+    ],
+    [
+     "Crescini Noah",
+     2006,
+     "LC Zürich",
+     "Sprint",
+     0
+    ],
+    [
+     "Csontos Joël",
+     2005,
+     "LAS Old Boys Basel",
+     "Sprint",
+     0
+    ],
+    [
+     "Deillon Cédric",
+     2005,
+     "TV Teufen",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Derungs Stella",
+     2005,
+     "AJ TV Landquart",
+     "Haies",
+     0
+    ],
+    [
+     "Dubler Anja",
+     2005,
+     "STB Leichtathletik",
+     "Haies",
+     0
+    ],
+    [
+     "Dupinet Alex",
+     2003,
+     "LC Zürich",
+     "Sprint",
+     0
+    ],
+    [
+     "Eberhard Tobias",
+     2003,
+     "STB Leichtathletik",
+     "Haies",
+     0
+    ],
+    [
+     "Emery Sébastien",
+     2007,
+     "LAC TV Unterstrass",
+     "Sprint",
+     0
+    ],
+    [
+     "Farkas Nicolas",
+     2007,
+     "LC Therwil",
+     "Sprint",
+     0
+    ],
+    [
+     "Feer Mia",
+     2005,
+     "LAC TV Unterstrass",
+     "Lancers",
+     0
+    ],
+    [
+     "Fournier Justin",
+     2005,
+     "CA Sion",
+     "Sauts",
+     0
+    ],
+    [
+     "Frank Lisa",
+     2007,
+     "LC Therwil",
+     "Haies",
+     0
+    ],
+    [
+     "Frei Nanda",
+     2005,
+     "AJ TV Landquart",
+     "Sprint",
+     0
+    ],
+    [
+     "Freitag Nino",
+     2004,
+     "LV Winterthur",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Gerber Manuel",
+     2005,
+     "LAG Gossau",
+     "Sprint",
+     0
+    ],
+    [
+     "Gillard Tom",
+     2008,
+     "LC Zürich",
+     "Sprint",
+     0
+    ],
+    [
+     "Gou Gomez Jonathan",
+     2005,
+     "Lausanne-Sports Athlétisme",
+     "Sprint",
+     0
+    ],
+    [
+     "Gouttefarde Cassandra",
+     2008,
+     "TV Länggasse Bern",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Grob Nils",
+     2007,
+     "TV Teufen",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Gygax Nicolò",
+     2007,
+     "CA Fribourg",
+     "Haies",
+     0
+    ],
+    [
+     "Häberli Tom Luca",
+     2007,
+     "TV Dietlikon",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Hasler Noah",
+     2008,
+     "LG Oberbaselbiet / BTV Sissach",
+     "Sauts",
+     0
+    ],
+    [
+     "Häuptli Melina",
+     2007,
+     "TV Thalwil",
+     "Sauts",
+     0
+    ],
+    [
+     "Hausammann Joelle",
+     2007,
+     "STV Lachen",
+     "Sprint",
+     0
+    ],
+    [
+     "Heinzmann Fiona Sophia",
+     2005,
+     "TV Länggasse Bern",
+     "Sauts",
+     0
+    ],
+    [
+     "Hirsbrunner Hanna",
+     2007,
+     "SK Langnau",
+     "Haies",
+     0
+    ],
+    [
+     "Hirzel Anina",
+     2007,
+     "LC Uster",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Hofer Jonathan",
+     2003,
+     "LC Zürich",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Huanca Quispe Eric",
+     2008,
+     "VIGOR Ligornetto",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Hug Norina",
+     2008,
+     "LA Mutschellen",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Hulmann Vanilla",
+     2007,
+     "CEP Cortaillod",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Hulmann Savanna",
+     2005,
+     "CEP Cortaillod",
+     "Sauts",
+     0
+    ],
+    [
+     "Ikezu Elina",
+     2006,
+     "LC Zürich",
+     "Haies",
+     0
+    ],
+    [
+     "Irarragorri Camilo",
+     2003,
+     "TG Hütten",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Issler Natalia",
+     2006,
+     "LC Zürich",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Kabeya Gabriel",
+     2008,
+     "TV Länggasse Bern",
+     "Haies",
+     0
+    ],
+    [
+     "Kaiser Aline",
+     2007,
+     "Amriswil-Athletics",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Kerber Shirin",
+     2006,
+     "LA Nidwalden",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Kobelt Fabio",
+     2003,
+     "STV Kriessern",
+     "Haies",
+     0
+    ],
+    [
+     "Koller Jenice",
+     2005,
+     "TV Teufen",
+     "Lancers",
+     0
+    ],
+    [
+     "Kreuzer Vivienne",
+     2008,
+     "LLT Oberwallis",
+     "Sauts",
+     0
+    ],
+    [
+     "Küchler Danilo",
+     2004,
+     "TSV Rothenburg athletics",
+     "Haies",
+     0
+    ],
+    [
+     "Künzler Yannis",
+     2005,
+     "LC Zürich",
+     "Sprint",
+     0
+    ],
+    [
+     "Landolt Philipp",
+     2006,
+     "LV Zürcher Oberland",
+     "Haies",
+     0
+    ],
+    [
+     "Ledermann Amélie",
+     2007,
+     "LV Langenthal",
+     "Sauts",
+     0
+    ],
+    [
+     "Liem Sereina",
+     2008,
+     "Athletikzentrum Unterwalden",
+     "Haies",
+     0
+    ],
+    [
+     "Liem Michelle",
+     2005,
+     "LC Zürich",
+     "Sprint",
+     0
+    ],
+    [
+     "Lienhard Amélie",
+     2008,
+     "LC Frauenfeld",
+     "Sauts",
+     0
+    ],
+    [
+     "Low-Beer Louis",
+     2004,
+     "Stade Genève",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Lüthi Nadja",
+     2007,
+     "LC Schaffhausen",
+     "Sauts",
+     0
+    ],
+    [
+     "Marrocco Luca",
+     2008,
+     "LC Kirchberg",
+     "Sprint",
+     0
+    ],
+    [
+     "Masini Alicia",
+     2005,
+     "FSG Alle",
+     "Sprint",
+     0
+    ],
+    [
+     "Mex Théo",
+     2008,
+     "Versoix Athlétisme",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Miller Louis",
+     2004,
+     "LAS Old Boys Basel",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Moulin Noé",
+     2007,
+     "CA Broyard",
+     "Sprint",
+     0
+    ],
+    [
+     "Müller Fabienne",
+     2005,
+     "LV Langenthal",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Nauer Jules",
+     2007,
+     "STB Leichtathletik",
+     "Haies",
+     0
+    ],
+    [
+     "Nöthiger Jael",
+     2006,
+     "BTV Aarau Athletics",
+     "Haies",
+     0
+    ],
+    [
+     "Nowack Iris",
+     2005,
+     "LC Luzern",
+     "Lancers",
+     0
+    ],
+    [
+     "Oeschger Lars",
+     2007,
+     "BTV Aarau Athletics",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Pache Justine",
+     2008,
+     "TSV Düdingen",
+     "Haies",
+     0
+    ],
+    [
+     "Payraudeau Yanis",
+     2006,
+     "CHP Genève",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Pereira Raphaël",
+     2008,
+     "Versoix Athlétisme",
+     "Haies",
+     0
+    ],
+    [
+     "Perroud Alexis",
+     2005,
+     "CEP Cortaillod",
+     "Haies",
+     0
+    ],
+    [
+     "Pfister Anna",
+     2007,
+     "LAC TV Unterstrass",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Pfrunder Jannis",
+     2006,
+     "LC Luzern",
+     "Haies",
+     0
+    ],
+    [
+     "Popea Théotime",
+     2008,
+     "Stade Lausanne Athlétisme",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Rahm Malin",
+     2005,
+     "LC Schaffhausen",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Rahm Amaja",
+     2007,
+     "LC Schaffhausen",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Rankl Timea",
+     2008,
+     "TV Teufen",
+     "Sprint",
+     0
+    ],
+    [
+     "Rickenbach Jan",
+     2006,
+     "TSV Steinen",
+     "Sprint",
+     0
+    ],
+    [
+     "Ritler Nele Sophia",
+     2007,
+     "LV Visp",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Rodriguez Max",
+     2008,
+     "LC Basel",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Rymann Sven",
+     2007,
+     "Athletikzentrum Unterwalden",
+     "Haies",
+     0
+    ],
+    [
+     "Schaden Levia",
+     2006,
+     "LC Regensdorf",
+     "Haies",
+     0
+    ],
+    [
+     "Schmid Sarah",
+     2004,
+     "LC Zürich",
+     "Lancers",
+     0
+    ],
+    [
+     "Schmidli Philipp",
+     2005,
+     "STV Lachen",
+     "Lancers",
+     0
+    ],
+    [
+     "Schranz Jelena",
+     2008,
+     "SK Langnau",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Schwarz Emilia",
+     2007,
+     "run + more 2025",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Schwitter Mara",
+     2008,
+     "TV Teufen",
+     "Sprint",
+     0
+    ],
+    [
+     "Simasotchi Kaya",
+     2004,
+     "Stade Genève",
+     "Sprint",
+     0
+    ],
+    [
+     "Simón Carreño Mar",
+     2008,
+     "STB Leichtathletik",
+     "Lancers",
+     0
+    ],
+    [
+     "Stadler Leana",
+     2008,
+     "BTV Aarau Athletics",
+     "Sprint",
+     0
+    ],
+    [
+     "Stettler Carina Celia",
+     2008,
+     "TV Länggasse Bern",
+     "Sprint",
+     0
+    ],
+    [
+     "Stückelberger Meret",
+     2006,
+     "LC Therwil",
+     "Sprint",
+     0
+    ],
+    [
+     "Studer Lea",
+     2007,
+     "TV Unterseen",
+     "Sprint",
+     0
+    ],
+    [
+     "Temeng Joel",
+     2004,
+     "LC Turicum",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Temeng Christa",
+     2007,
+     "LC Zürich",
+     "Lancers",
+     0
+    ],
+    [
+     "Tenisch Luana",
+     2007,
+     "LC Luzern",
+     "Sprint",
+     0
+    ],
+    [
+     "Thalmann Lia",
+     2005,
+     "KTV Wil LA",
+     "Sprint",
+     0
+    ],
+    [
+     "Thommen Nevis",
+     2007,
+     "LG Oberbaselbiet / BTV Sissach",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Tonazzi Milla",
+     2007,
+     "LK Zug",
+     "Sprint",
+     0
+    ],
+    [
+     "Tönz Alessandro",
+     2007,
+     "BTV Chur Leichtathletik",
+     "Sprint",
+     0
+    ],
+    [
+     "Triaca Elia",
+     2005,
+     "LC Zürich",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Troxler Eliane",
+     2006,
+     "TV Teufen",
+     "Sprint",
+     0
+    ],
+    [
+     "Umegbolu Joy",
+     2008,
+     "LC Frauenfeld",
+     "Sprint",
+     0
+    ],
+    [
+     "Vogel Jephté",
+     2002,
+     "FSG Alle",
+     "Lancers",
+     0
+    ],
+    [
+     "Vollenweider Mathieu",
+     2008,
+     "Athlétisme Viseu-Genève",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "von Flüe Fiona",
+     2008,
+     "LC Zürich",
+     "Demi-fond et fond",
+     1
+    ],
+    [
+     "Wade Linda Fatou",
+     2007,
+     "LC Therwil",
+     "Haies",
+     0
+    ],
+    [
+     "Weber Céline",
+     2006,
+     "LC Zürich",
+     "Sauts",
+     0
+    ],
+    [
+     "Wipfli Noée",
+     2007,
+     "STB Leichtathletik",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Wirth Giulia",
+     2006,
+     "Amriswil-Athletics",
+     "Haies",
+     0
+    ],
+    [
+     "Witteveen Hugo",
+     2008,
+     "Athlétisme Viseu-Genève",
+     "Demi-fond et fond",
+     0
+    ],
+    [
+     "Wolfisberg Lars",
+     2003,
+     "LC Luzern",
+     "Lancers",
+     0
+    ],
+    [
+     "Wullschleger Melissa",
+     2004,
+     "LAS Old Boys Basel",
+     "Épreuves multiples",
+     0
+    ],
+    [
+     "Zelies Isabella",
+     2008,
+     "LC Zürich",
+     "Haies",
+     0
+    ],
+    [
+     "Zimmermann Elia",
+     2008,
+     "LLT Oberwallis",
+     "Sprint",
+     0
+    ],
+    [
+     "Zumbühl Colin",
+     2006,
+     "TV Sarnen LA",
+     "Haies",
+     0
+    ]
+   ],
+   "minors_not_stored": 22
+  }
+ ],
+ "limits": {
+  "name": "Limites Swiss Starters",
+  "year": 2026,
+  "for": "Swiss Starters 2027",
+  "source": "https://www.swiss-athletics.ch/fileadmin/user_upload/www.swiss-athletics.ch/leistungssport/foerderung/kader/ss_limiten.pdf",
+  "events": [
+   {
+    "name": "100 m",
+    "M": "10.30",
+    "W": "11.39",
+    "labels": {
+     "M": [
+      "100 m"
+     ],
+     "W": [
+      "100 m"
+     ]
+    }
+   },
+   {
+    "name": "200 m",
+    "M": "20.75",
+    "W": "23.30",
+    "labels": {
+     "M": [
+      "200 m"
+     ],
+     "W": [
+      "200 m"
+     ]
+    }
+   },
+   {
+    "name": "400 m",
+    "M": "45.90",
+    "W": "52.15",
+    "labels": {
+     "M": [
+      "400 m"
+     ],
+     "W": [
+      "400 m"
+     ]
+    }
+   },
+   {
+    "name": "800 m",
+    "M": "1:46.10",
+    "W": "2:01.20",
+    "labels": {
+     "M": [
+      "800 m"
+     ],
+     "W": [
+      "800 m"
+     ]
+    }
+   },
+   {
+    "name": "1500 m",
+    "M": "3:35.70",
+    "W": "4:07.40",
+    "labels": {
+     "M": [
+      "1500 m"
+     ],
+     "W": [
+      "1500 m"
+     ]
+    }
+   },
+   {
+    "name": "5000 m",
+    "M": "13:22.00",
+    "W": "15:22.00",
+    "labels": {
+     "M": [
+      "5000 m"
+     ],
+     "W": [
+      "5000 m"
+     ]
+    }
+   },
+   {
+    "name": "10 000 m",
+    "M": "28:15.00",
+    "W": "32:55.00",
+    "labels": {
+     "M": [
+      "10 000 m"
+     ],
+     "W": [
+      "10 000 m"
+     ]
+    }
+   },
+   {
+    "name": "Marathon",
+    "M": "2:12:00",
+    "W": "2:30:30",
+    "labels": {
+     "M": [],
+     "W": []
+    }
+   },
+   {
+    "name": "110 m haies / 100 m haies",
+    "M": "13.65",
+    "W": "13.10",
+    "labels": {
+     "M": [
+      "110 mH 106.7"
+     ],
+     "W": [
+      "100 mH 83.8"
+     ]
+    }
+   },
+   {
+    "name": "400 m haies",
+    "M": "50.25",
+    "W": "56.65",
+    "labels": {
+     "M": [
+      "400 mH 91.4"
+     ],
+     "W": [
+      "400 mH 76.2"
+     ]
+    }
+   },
+   {
+    "name": "3000 m steeple",
+    "M": "8:32.50",
+    "W": "9:49.00",
+    "labels": {
+     "M": [
+      "3000 m Steeple"
+     ],
+     "W": [
+      "3000 m Steeple"
+     ]
+    }
+   },
+   {
+    "name": "Hauteur",
+    "M": "2.20",
+    "W": "1.89",
+    "labels": {
+     "M": [
+      "Hoch"
+     ],
+     "W": [
+      "Hoch"
+     ]
+    }
+   },
+   {
+    "name": "Longueur",
+    "M": "7.90",
+    "W": "6.55",
+    "labels": {
+     "M": [
+      "Weit"
+     ],
+     "W": [
+      "Weit"
+     ]
+    }
+   },
+   {
+    "name": "Perche",
+    "M": "5.55",
+    "W": "4.45",
+    "labels": {
+     "M": [
+      "Stab"
+     ],
+     "W": [
+      "Stab"
+     ]
+    }
+   },
+   {
+    "name": "Triple saut",
+    "M": "16.15",
+    "W": "13.85",
+    "labels": {
+     "M": [
+      "Drei"
+     ],
+     "W": [
+      "Drei"
+     ]
+    }
+   },
+   {
+    "name": "Poids",
+    "M": "19.75",
+    "W": "16.55",
+    "labels": {
+     "M": [
+      "Kugel 7.26"
+     ],
+     "W": [
+      "Kugel 4.00"
+     ]
+    }
+   },
+   {
+    "name": "Disque",
+    "M": "62.90",
+    "W": "56.80",
+    "labels": {
+     "M": [
+      "Diskus 2.00"
+     ],
+     "W": [
+      "Diskus 1.00"
+     ]
+    }
+   },
+   {
+    "name": "Marteau",
+    "M": "74.30",
+    "W": "68.80",
+    "labels": {
+     "M": [
+      "Hammer 7.26"
+     ],
+     "W": [
+      "Hammer 4.00"
+     ]
+    }
+   },
+   {
+    "name": "Javelot",
+    "M": "78.70",
+    "W": "57.50",
+    "labels": {
+     "M": [
+      "Speer 800"
+     ],
+     "W": [
+      "Speer 600"
+     ]
+    }
+   },
+   {
+    "name": "Décathlon / heptathlon",
+    "M": "7960",
+    "W": "6100",
+    "labels": {
+     "M": [
+      "Zehnkampf M"
+     ],
+     "W": [
+      "Siebenkampf"
+     ]
+    }
+   }
+  ]
+ }
+}
