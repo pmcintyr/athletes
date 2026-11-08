@@ -27,6 +27,7 @@ const athleteHref = (id, name) => `#/a/${id}/${slug(name)}`;
 
 function fmtVal(v, d) {
   if (lower(d)) {
+    if (v >= 3600) { const h = Math.floor(v / 3600), m = Math.floor((v - h * 3600) / 60); return `${h}:${String(m).padStart(2, "0")}:${String(Math.round(v % 60)).padStart(2, "0")}`; }
     if (v >= 60) { const m = Math.floor(v / 60); return `${m}:${(v - m * 60).toFixed(2).padStart(5, "0")}`; }
     return v.toFixed(2);
   }
@@ -409,7 +410,7 @@ async function start() {
     return;
   }
   document.getElementById("foot").innerHTML = `
-    <p>Site indépendant et non officiel, sans lien avec Swiss Athletics. Données : résultats publics de la base Alabus de Swiss Athletics, dès ${META.first_year}. Dernière performance enregistrée le ${fmtDate(META.last_result)}, mise à jour le ${fmtDate(META.generated)}.</p>
+    <p>Site indépendant et non officiel, sans lien avec Swiss Athletics. Données : résultats publics de la base Alabus de Swiss Athletics, dès ${META.first_year} ; courses sur route : listes de World Athletics (parcours certifiés). Dernière performance enregistrée le ${fmtDate(META.last_result)}, mise à jour le ${fmtDate(META.generated)}.</p>
     <p>Seule l'année de naissance est publiée, et les athlètes de moins de ${META.min_age} ans ne sont pas affichés.${META.contact ? ` Pour corriger ou retirer un profil : <a href="mailto:${esc(META.contact)}">${esc(META.contact)}</a>.` : ""}</p>`;
   window.addEventListener("hashchange", route);
   route();
