@@ -34,7 +34,8 @@ env:
   # Where the site lives (used for link previews and sitemaps). athletes.mcintyre.ch forwards here from
   # cPanel. To serve it on athletes.mcintyre.ch directly, see "Address" in README.md.
   SITE_URL: https://pmcintyr.github.io/athletes/
-  BUDGET_MIN: "290"  # stop starting new Alabus lists after this many minutes (job limit is 6 hours)
+  BUDGET_MIN: "265"  # stop starting new Alabus lists after this many minutes (job limit is 6 hours)
+  ROAD_BUDGET_MIN: "40"  # same for the World Athletics road lists, which run first
 
 jobs:
   check:  # without the key nothing can be stored safely: skip quietly instead of failing
@@ -77,6 +78,14 @@ jobs:
           SITE_KEY: ${{ secrets.SITE_KEY }}
         run: python store.py download
 
+      - name: Download road results from World Athletics
+        id: road
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'update')
+        continue-on-error: true  # road results are a bonus: a failure here never blocks the Alabus update
+        env:
+          FORCE: ${{ inputs.force_refresh && '--force-refresh' || '' }}
+        run: python road_data.py --budget-min "$ROAD_BUDGET_MIN" $FORCE
+
       - name: Download new results from Alabus
         id: scrape
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'update')
@@ -87,7 +96,7 @@ jobs:
       # The steps below also run after a failed download, so data already fetched (or a seed) is kept.
       - name: Save the database
         id: save
-        if: ${{ !cancelled() && steps.restore.outcome == 'success' && (steps.scrape.outputs.changed == 'true' || steps.restore.outputs.seeded == 'true') }}
+        if: ${{ !cancelled() && steps.restore.outcome == 'success' && (steps.scrape.outputs.changed == 'true' || steps.road.outputs.changed == 'true' || steps.restore.outputs.seeded == 'true') }}
         env:
           GH_TOKEN: ${{ github.token }}
           SITE_KEY: ${{ secrets.SITE_KEY }}
@@ -118,8 +127,9 @@ jobs:
           MODE: ${{ inputs.mode }}
           CHANGED: ${{ steps.scrape.outputs.changed }}
           SEEDED: ${{ steps.restore.outputs.seeded }}
+          ROAD: ${{ steps.road.outputs.changed }}
         run: |
-          if [ -f athletics.db ] && { [ "$EVENT" = push ] || [ "$MODE" = publish ] || [ "$CHANGED" = true ] || [ "$SEEDED" = true ]; }; then
+          if [ -f athletics.db ] && { [ "$EVENT" = push ] || [ "$MODE" = publish ] || [ "$CHANGED" = true ] || [ "$ROAD" = true ] || [ "$SEEDED" = true ]; }; then
             echo "publish=true" >> "$GITHUB_OUTPUT"
           else
             echo "publish=false" >> "$GITHUB_OUTPUT"
