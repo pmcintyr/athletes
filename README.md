@@ -5,7 +5,7 @@ bests, progression by season, Swiss championship podiums, all results, head-to-h
 season best lists. In the spirit of Stathletics. Everything runs on GitHub, for free, with no laptop.
 
 ```
-Alabus ──> GitHub Actions, every night ──> build_site.py ──> GitHub Pages (athletes.mcintyre.ch)
+Alabus ──> GitHub Actions, every night ──> build_site.py ──> GitHub Pages (pmcintyr.github.io/athletes)
              │  update_data.py + alabus_scraper.py
              └─ encrypted athletics.db in the "data" release (save / restore)
 ```
@@ -57,10 +57,22 @@ the site from the stored data, without downloading anything.
 ## One-time setup (already done for pmcintyr/athletes)
 
 1. Repository secret `SITE_KEY`: Settings > Secrets and variables > Actions > New repository secret,
-   any long random text (40+ characters).
-2. Settings > Pages > Source: **GitHub Actions**. Custom domain: `athletes.mcintyre.ch`, then tick
-   **Enforce HTTPS** once the DNS check passes.
-3. At the DNS host of mcintyre.ch: a `CNAME` record, name `athletes`, value `pmcintyr.github.io`.
+   any long random text (40+ characters). Without it the workflow skips with a warning.
+2. Settings > Pages > Source: **GitHub Actions**.
+
+## Address
+
+The site is published at `https://pmcintyr.github.io/athletes/`. `athletes.mcintyre.ch` is a subdomain in
+the mcintyre.ch cPanel (Swizzonic) with a temporary (302) wildcard redirect to that address, so
+`athletes.mcintyre.ch/p/<id>.html` lands on the same page on github.io.
+
+To serve the site on `athletes.mcintyre.ch` itself (the address bar then keeps it):
+
+1. Swizzonic Espace Client > mcintyre.ch > Domaine et DNS > Configuration DNS: replace the `A` record of
+   `athletes` with a `CNAME` to `pmcintyr.github.io`. (cPanel cannot do this: its DNS editor is disabled.)
+2. cPanel > Redirects: delete the athletes.mcintyre.ch redirect.
+3. Settings > Pages > Custom domain: `athletes.mcintyre.ch`, then tick **Enforce HTTPS** once the check passes.
+4. In `.github/workflows/update.yml`, set `SITE_URL: https://athletes.mcintyre.ch/` and commit.
 
 ## Preview locally (optional)
 
