@@ -71,6 +71,7 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Restore the database
+        id: restore
         env:
           GH_TOKEN: ${{ github.token }}
           SITE_KEY: ${{ secrets.SITE_KEY }}
@@ -83,15 +84,23 @@ jobs:
           FORCE: ${{ inputs.force_refresh && '--force-refresh' || '' }}
         run: python update_data.py --budget-min "$BUDGET_MIN" $FORCE
 
+      # The steps below also run after a failed download, so data already fetched (or a seed) is kept.
       - name: Save the database
-        if: steps.scrape.outputs.changed == 'true'
+        id: save
+        if: ${{ !cancelled() && steps.restore.outcome == 'success' && (steps.scrape.outputs.changed == 'true' || steps.restore.outputs.seeded == 'true') }}
         env:
           GH_TOKEN: ${{ github.token }}
           SITE_KEY: ${{ secrets.SITE_KEY }}
         run: python store.py upload
 
+      - name: Delete the seed release (its data is now stored encrypted)
+        if: ${{ !cancelled() && steps.save.outcome == 'success' && steps.restore.outputs.seeded == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python store.py drop-seed
+
       - name: Record the status in the repository
-        if: steps.scrape.outputs.changed == 'true'
+        if: ${{ !cancelled() && steps.save.outcome == 'success' && steps.scrape.outputs.changed == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -103,19 +112,21 @@ jobs:
 
       - name: Decide whether to publish
         id: decide
+        if: ${{ !cancelled() && steps.restore.outcome == 'success' }}
         env:
           EVENT: ${{ github.event_name }}
           MODE: ${{ inputs.mode }}
           CHANGED: ${{ steps.scrape.outputs.changed }}
+          SEEDED: ${{ steps.restore.outputs.seeded }}
         run: |
-          if [ -f athletics.db ] && { [ "$EVENT" = push ] || [ "$MODE" = publish ] || [ "$CHANGED" = true ]; }; then
+          if [ -f athletics.db ] && { [ "$EVENT" = push ] || [ "$MODE" = publish ] || [ "$CHANGED" = true ] || [ "$SEEDED" = true ]; }; then
             echo "publish=true" >> "$GITHUB_OUTPUT"
           else
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build the site
-        if: steps.decide.outputs.publish == 'true'
+        if: ${{ !cancelled() && steps.decide.outputs.publish == 'true' }}
         env:
           SITE_KEY: ${{ secrets.SITE_KEY }}
         run: |
@@ -123,13 +134,13 @@ jobs:
           python build_site.py --db athletics.db --out site --base-url "$SITE_URL"
 
       - uses: actions/upload-pages-artifact@v3
-        if: steps.decide.outputs.publish == 'true'
+        if: ${{ !cancelled() && steps.decide.outputs.publish == 'true' }}
         with:
           path: site
 
   deploy:
     needs: data
-    if: needs.data.outputs.publish == 'true'
+    if: ${{ !cancelled() && needs.data.outputs.publish == 'true' }}
     runs-on: ubuntu-24.04  # pinned: Python 3.12 builds and gpg are known to work here
     environment:
       name: github-pages
