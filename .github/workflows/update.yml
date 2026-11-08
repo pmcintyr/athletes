@@ -36,7 +36,7 @@ env:
 
 jobs:
   check:  # without the key nothing can be stored safely: skip quietly instead of failing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: Python 3.12 builds and gpg are known to work here
     outputs:
       ok: ${{ steps.key.outputs.ok }}
     steps:
@@ -54,7 +54,7 @@ jobs:
   data:
     needs: check
     if: needs.check.outputs.ok == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: Python 3.12 builds and gpg are known to work here
     timeout-minutes: 350
     outputs:
       publish: ${{ steps.decide.outputs.publish }}
@@ -128,7 +128,7 @@ jobs:
   deploy:
     needs: data
     if: needs.data.outputs.publish == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned: Python 3.12 builds and gpg are known to work here
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
