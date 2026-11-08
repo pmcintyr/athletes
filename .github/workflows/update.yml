@@ -19,7 +19,7 @@ on:
         default: false
   push:
     branches: [main]
-    paths: ["web/**", "build_site.py", "removals.txt", ".github/workflows/update.yml"]
+    paths: ["web/**", "build_site.py", "cadres.json", "removals.txt", ".github/workflows/update.yml"]
 
 permissions:
   contents: write  # release file with the encrypted database, status.json commit
