@@ -31,7 +31,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DOMAIN: athletes.mcintyre.ch
+  # Where the site lives (used for link previews and sitemaps). athletes.mcintyre.ch forwards here from
+  # cPanel. To serve it on athletes.mcintyre.ch directly, see "Address" in README.md.
+  SITE_URL: https://pmcintyr.github.io/athletes/
   BUDGET_MIN: "290"  # stop starting new Alabus lists after this many minutes (job limit is 6 hours)
 
 jobs:
@@ -118,7 +120,7 @@ jobs:
           SITE_KEY: ${{ secrets.SITE_KEY }}
         run: |
           python -c "import hashlib, os; print(hashlib.sha256(('ids|' + os.environ['SITE_KEY']).encode()).hexdigest()[:32])" > .site_salt
-          python build_site.py --db athletics.db --out site --domain "$DOMAIN" --base-url "https://$DOMAIN/"
+          python build_site.py --db athletics.db --out site --base-url "$SITE_URL"
 
       - uses: actions/upload-pages-artifact@v3
         if: steps.decide.outputs.publish == 'true'
