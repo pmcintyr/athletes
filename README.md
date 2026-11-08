@@ -50,6 +50,7 @@ the site from the stored data, without downloading anything.
 |---|---|
 | `alabus_scraper.py` | Downloads and parses Alabus best lists (one page per second) |
 | `update_data.py` | Decides what to download, resumes after the time limit, stops if Alabus is down |
+| `road_data.py` | Road races of Swiss athletes (5 km to marathon) from the World Athletics season top lists, which only include certified courses |
 | `store.py` | Encrypts and saves the database to the `data` release, and restores it |
 | `build_site.py` | Turns the database into the static site (streams from SQLite, about 140 MB of memory) |
 | `web/` | The page itself: `index.html`, `app.js`, `style.css`, fonts |
@@ -90,6 +91,10 @@ cd site && python -m http.server 8000      # then open http://localhost:8000
 * Podiums are read from meeting names ("SM Aktive", "SM Halle Nachwuchs", "Schweizer Meisterschaften",
   see `is_medal` in `build_site.py`) and a rank of 1 to 3 in a final. At meetings whose only championship
   is a combined-events one ("Hallenmeeting inkl. SM Halle Mehrkampf"), only the combined events count.
+* Road results come from the World Athletics top lists: certified courses only, and only down to each list's
+  level limit (e.g. 2:37:00 for the men's marathon). World Athletics' terms require written permission to reuse
+  their data; Paul decided to go ahead and takes responsibility. If they object, set `ROAD_BUDGET_MIN` to 0 and
+  delete the `road` table.
 * An athlete is identified by name and birth date, as in the scraper: a spelling change creates two profiles.
 * Alabus lists stop at 5 000 rows; the update log says "cap reached" when a list is cut.
 * GitHub Pages sites are limited to 1 GB; the build warns above 900 MB (a realistic test with

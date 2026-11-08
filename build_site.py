@@ -67,7 +67,9 @@ def fr_label(label):
     m = re.match(r"^(\d+) mH ([\d.]+)$", l)
     if m:
         return f"{m.group(1)} m haies {m.group(2)}"
-    simple = {"Hoch": "Hauteur", "Stab": "Perche", "Weit": "Longueur", "Drei": "Triple", "1 Meile": "1 mile"}
+    simple = {"Hoch": "Hauteur", "Stab": "Perche", "Weit": "Longueur", "Drei": "Triple", "1 Meile": "1 mile",
+              "5 km Strasse": "5 km route", "10 km Strasse": "10 km route", "15 km Strasse": "15 km route",
+              "10 Meilen Strasse": "10 miles route", "20 km Strasse": "20 km route", "Halbmarathon": "Semi-marathon"}
     if l in simple:
         return simple[l]
     for g, f in (("Siebenkampf", "Heptathlon"), ("Zehnkampf", "Décathlon"), ("Fünfkampf", "Pentathlon")):
@@ -76,8 +78,14 @@ def fr_label(label):
     return l.replace("Steeple", "steeple")
 
 
+ROAD_KM = {"5 km Strasse": 5, "10 km Strasse": 10, "15 km Strasse": 15, "10 Meilen Strasse": 16.09, "20 km Strasse": 20,
+           "Halbmarathon": 21.1, "Marathon": 42.2}
+
+
 def discipline_order(label):
     l = str(label)
+    if l in ROAD_KM:
+        return (0.5, ROAD_KM[l], l)  # road races right after the track running events
     num = re.search(r"[\d.]+", l)
     n = float(num.group(0)) if num else 0.0
     if re.match(r"^\d+\s*x", l, re.I) or "Staffel" in l or "relais" in l.lower():
@@ -199,6 +207,10 @@ def prepare(con, min_age):
             return c
         sel = ", ".join(col(c) for c in COLS)
         parts.append(f"SELECT {prio} AS src, {sel} FROM {t}")
+    if "road" in have:  # road races from the World Athletics top lists (certified courses only), see road_data.py
+        parts.append("""SELECT 2 AS src, 0 AS indoor, 'road-' || event AS disci_id, label AS discipline, sex, CAST(season AS TEXT) AS year,
+                        mark_raw, mark_value, 0 AS hand_timed, 1 AS lower_better, place, '' AS round_code, name, NULL AS club, nat,
+                        birth_date, venue AS meeting, NULL AS location, date, athlete_key, NULL AS wind FROM road""")
     if not parts:
         sys.exit("no 'allresults' or 'bestlist' table in the database")
     max_by = datetime.now().year - min_age
@@ -314,7 +326,7 @@ def athlete(rows, M, L, C):
     medals.sort(key=lambda m: (-m[4], -m[0], m[2]))
     res = [[r["d"], r["date"], mark_text(r["mark"]), r1(r["wind"]), r["place"], r["round"], M(r["meeting"]),
             L(r["loc"]), C(r["club"]), r["assisted"]] for r in rows]
-    prof = {"n": latest["name"], "by": latest["by"], "s": latest["sex"], "c": latest["club"], "cs": clubs[-6:],
+    prof = {"n": latest["name"], "by": latest["by"], "s": latest["sex"], "c": next((r["club"] for r in rows if r["club"]), ""), "cs": clubs[-6:],
             "nat": latest["nat"], "pb": pb, "sb": sb, "m": medals, "r": res}
     page = {"pb": [[r["d"], mark_text(r["mark"]), r1(r["wind"]), r["date"], r["meeting"], r["loc"]] for r in pbr]}
     return prof, page
