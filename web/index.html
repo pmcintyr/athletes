@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<meta name="description" content="Profils des athlètes suisses : records personnels, progression, médailles et confrontations directes, à partir des résultats publics de Swiss Athletics.">
+<meta name="theme-color" content="#1f3a5f">
+<link rel="preload" href="fonts/barlow-semi-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#/">{{TITLE}}</a>
+    <nav class="top-nav" aria-label="Navigation principale">
+      <a href="#/">Rechercher</a>
+      <a href="#/l" data-nav="lists">Meilleures performances</a>
+    </nav>
+  </div>
+</header>
+<main id="app" class="wrap" tabindex="-1">
+  <p class="loading">Chargement…</p>
+</main>
+<footer class="foot">
+  <div class="wrap" id="foot"></div>
+</footer>
+<script src="app.js" defer></script>
+</body>
+</html>
