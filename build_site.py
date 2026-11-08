@@ -187,7 +187,17 @@ def prepare(con, min_age):
         if t not in have:
             continue
         cols = {r[1] for r in con.execute(f"PRAGMA table_info({t})")}
-        sel = ", ".join(c if c in cols else f"NULL AS {c}" for c in COLS)
+        def col(c):
+            if c not in cols:
+                return f"NULL AS {c}"
+            # Combined events are stored as "6138 13.85 (0.0) / 1.76 / ...": keep the points, which the scraper leaves unparsed.
+            if c == "mark_value":
+                return "COALESCE(mark_value, CASE WHEN discipline LIKE '%kampf%' THEN CAST(mark_raw AS INTEGER) END) AS mark_value"
+            if c == "mark_raw":
+                return ("CASE WHEN discipline LIKE '%kampf%' AND instr(trim(mark_raw), ' ') > 1 "
+                        "THEN substr(trim(mark_raw), 1, instr(trim(mark_raw), ' ') - 1) ELSE mark_raw END AS mark_raw")
+            return c
+        sel = ", ".join(col(c) for c in COLS)
         parts.append(f"SELECT {prio} AS src, {sel} FROM {t}")
     if not parts:
         sys.exit("no 'allresults' or 'bestlist' table in the database")
