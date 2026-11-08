@@ -85,8 +85,9 @@ cd site && python -m http.server 8000      # then open http://localhost:8000
 
 ## Known limits
 
-* Podiums are guessed from meeting names (`CHAMPIONSHIP_PATTERNS` in `build_site.py`) and a final
-  rank of 1 to 3. Check the real Swiss championship meeting names and adjust.
+* Podiums are read from meeting names ("SM Aktive", "SM Halle Nachwuchs", "Schweizer Meisterschaften",
+  see `is_medal` in `build_site.py`) and a rank of 1 to 3 in a final. At meetings whose only championship
+  is a combined-events one ("Hallenmeeting inkl. SM Halle Mehrkampf"), only the combined events count.
 * An athlete is identified by name and birth date, as in the scraper: a spelling change creates two profiles.
 * Alabus lists stop at 5 000 rows; the update log says "cap reached" when a list is cut.
 * GitHub Pages sites are limited to 1 GB; the build warns above 900 MB (a realistic test with

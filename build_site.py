@@ -45,6 +45,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 # Same lists as alabus_scraper.py. Edit after checking the real meeting names in your data.
 CHAMPIONSHIP_PATTERNS = ["schweizer meisterschaft", "championnats suisses", "campionati svizzeri", "swiss championships"]
+# Alabus mostly writes "SM Aktive", "SM Halle Nachwuchs (WRC)", "SM U20/U23", "Masters-SM ...", "Team SM".
+SM_RE = re.compile(r"(^|[\s/(+])(masters[\s-]?)?sm([\s-]|$)")
+NOT_SWISS = ("kilpail", "saul")  # Finnish "SM-kilpailut" are Finnish championships
+# "Hallenmeeting inkl. SM Halle Mehrkampf": only the combined events of such a meeting are championships.
+SM_MK_RE = re.compile(r"(masters[\s-]?)?sm[\s-]*(halle[\s-]*)?(mehrkampf|mk)\b")
 COLS = ["indoor", "disci_id", "discipline", "sex", "year", "mark_raw", "mark_value", "hand_timed", "lower_better",
         "place", "round_code", "name", "club", "nat", "birth_date", "meeting", "location", "date", "athlete_key", "wind"]
 
@@ -122,10 +127,16 @@ def r1(v, nd=1):
     return None if v is None else round(float(v), nd)
 
 
-def is_medal(meeting, place, round_code):
+def is_championship(m):
+    return any(p in m for p in CHAMPIONSHIP_PATTERNS) or bool(SM_RE.search(m))
+
+
+def is_medal(meeting, place, round_code, label=""):
     m = s(meeting).lower()
-    if not any(p in m for p in CHAMPIONSHIP_PATTERNS):
+    if any(x in m for x in NOT_SWISS) or not is_championship(m):
         return False
+    if not is_championship(SM_MK_RE.sub(" ", m)) and "kampf" not in s(label).lower():
+        return False  # the meeting's only championship is a combined-events one, and this is not a combined event
     if place is None or not 1 <= int(place) <= 3:
         return False
     rc = s(round_code).lower()
@@ -242,13 +253,16 @@ def athlete(rows, M, L, C):
     Result rows carry the mark text only; the browser reads its numeric value from it."""
     latest = rows[0]
     clubs = list(dict.fromkeys(r["club"] for r in reversed(rows) if r["club"]))
-    pbr = [r for _, r in sorted(best_by(rows, lambda r: r["d"]).items())]
+    last = {}  # latest season per event: events still done come first, children's events of long ago last
+    for r in rows:
+        last.setdefault(r["d"], r["season"])
+    pbr = sorted(best_by(rows, lambda r: r["d"]).values(), key=lambda r: (-int(last[r["d"]] or 0), r["d"]))
     pb = [[r["d"], mark_text(r["mark"]), r1(r["wind"]), r["date"], M(r["meeting"]), L(r["loc"]), r["hand"]] for r in pbr]
     sb = [[d, season, mark_text(r["mark"]), r1(r["value"], 3)]
           for (d, season), r in sorted(best_by(rows, lambda r: (r["d"], r["season"])).items())]
     medals, seen = [], set()
     for r in rows:
-        if is_medal(r["meeting"], r["place"], r["round"]):
+        if is_medal(r["meeting"], r["place"], r["round"], r["label"]):
             k = (r["season"], r["d"], r["meeting"])
             if k not in seen:
                 seen.add(k)
@@ -372,7 +386,7 @@ def build(a):
             cur, cur_pid, shard_id = [], pid, pid[:3]
         cur.append({"d": d, "date": s(date), "mark": mark, "value": value, "wind": wind, "place": place,
                     "round": s(rnd), "meeting": s(meeting), "loc": s(loc), "club": s(club), "name": s(name),
-                    "by": by, "sex": s(sex), "nat": s(nat), "hand": int(hand or 0), "season": int(season),
+                    "by": by, "sex": s(sex), "nat": s(nat), "hand": int(hand or 0), "season": int(season), "label": label,
                     "sortv": value if lower == 1 else -value,
                     "assisted": int(bool(is_wind_event(label, indoor) and wind is not None and wind > 2.0))})
     if cur:

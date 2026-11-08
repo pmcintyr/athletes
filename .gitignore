@@ -13,3 +13,4 @@ removals.csv
 *.xlsx
 __pycache__/
 .DS_Store
+seed-upload/
