@@ -1,0 +1,137 @@
+# Downloads new results from Alabus, keeps the database (encrypted) and publishes the site on GitHub Pages.
+# Runs by itself every night; does real work only when the current season is 6+ days old or past seasons
+# are still missing. Can also be started by hand: Actions > Update data and site > Run workflow.
+name: Update data and site
+
+on:
+  schedule:
+    - cron: "17 2 * * *"  # 03:17 in Switzerland (winter time)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "update = download new results, then publish. publish = rebuild the site only"
+        type: choice
+        options: [update, publish]
+        default: update
+      force_refresh:
+        description: "Download the current season again even if it was refreshed this week"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths: ["web/**", "build_site.py", "removals.txt", ".github/workflows/update.yml"]
+
+permissions:
+  contents: write  # release file with the encrypted database, status.json commit
+  pages: write
+  id-token: write
+
+concurrency:
+  group: athletes-data  # never two runs on the database at once
+  cancel-in-progress: false
+
+env:
+  DOMAIN: athletes.mcintyre.ch
+  BUDGET_MIN: "290"  # stop starting new Alabus lists after this many minutes (job limit is 6 hours)
+
+jobs:
+  check:  # without the key nothing can be stored safely: skip quietly instead of failing
+    runs-on: ubuntu-latest
+    outputs:
+      ok: ${{ steps.key.outputs.ok }}
+    steps:
+      - id: key
+        env:
+          SITE_KEY: ${{ secrets.SITE_KEY }}
+        run: |
+          if [ ${#SITE_KEY} -ge 16 ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::The SITE_KEY secret is missing (or shorter than 16 characters), so nothing was done. Add it in Settings > Secrets and variables > Actions."
+          fi
+
+  data:
+    needs: check
+    if: needs.check.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    outputs:
+      publish: ${{ steps.decide.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Restore the database
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SITE_KEY: ${{ secrets.SITE_KEY }}
+        run: python store.py download
+
+      - name: Download new results from Alabus
+        id: scrape
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'update')
+        env:
+          FORCE: ${{ inputs.force_refresh && '--force-refresh' || '' }}
+        run: python update_data.py --budget-min "$BUDGET_MIN" $FORCE
+
+      - name: Save the database
+        if: steps.scrape.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SITE_KEY: ${{ secrets.SITE_KEY }}
+        run: python store.py upload
+
+      - name: Record the status in the repository
+        if: steps.scrape.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add status.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Data update $(date -u +%F)"
+            git pull --rebase --quiet && git push
+          fi
+
+      - name: Decide whether to publish
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          MODE: ${{ inputs.mode }}
+          CHANGED: ${{ steps.scrape.outputs.changed }}
+        run: |
+          if [ -f athletics.db ] && { [ "$EVENT" = push ] || [ "$MODE" = publish ] || [ "$CHANGED" = true ]; }; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build the site
+        if: steps.decide.outputs.publish == 'true'
+        env:
+          SITE_KEY: ${{ secrets.SITE_KEY }}
+        run: |
+          python -c "import hashlib, os; print(hashlib.sha256(('ids|' + os.environ['SITE_KEY']).encode()).hexdigest()[:32])" > .site_salt
+          python build_site.py --db athletics.db --out site --domain "$DOMAIN" --base-url "https://$DOMAIN/"
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.decide.outputs.publish == 'true'
+        with:
+          path: site
+
+  deploy:
+    needs: data
+    if: needs.data.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
