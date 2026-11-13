@@ -1,8 +1,8 @@
 # Athlètes suisses
 
 A free website with a profile for every adult Swiss athlete in the Alabus results database: personal
-bests, progression by season, Swiss championship podiums, all results, head-to-head comparisons and
-season best lists. In the spirit of Stathletics. Everything runs on GitHub, for free, with no laptop.
+bests, progression by season, Swiss championship podiums, all results, head-to-head comparisons,
+season best lists and a season planner. In the spirit of Stathletics. Everything runs on GitHub, for free, with no laptop.
 
 ```
 Alabus ──> GitHub Actions, every night ──> build_site.py ──> GitHub Pages (pmcintyr.github.io/athletes)
@@ -21,7 +21,7 @@ The workflow `.github/workflows/update.yml` starts every night at 03:17 (Swiss w
 3. Saves the database again (keeps the 2 newest copies) and records `status.json` in the repository.
 4. Builds the site with `build_site.py` and publishes it on GitHub Pages.
 
-Changing the site code, `build_site.py`, `cadres.json` or `removals.txt` on the main branch rebuilds and publishes
+Changing the site code, `build_site.py`, `cadres.json`, `planner.json` or `removals.txt` on the main branch rebuilds and publishes
 the site from the stored data, without downloading anything.
 
 ## Everyday tasks (all from a phone)
@@ -33,6 +33,8 @@ the site from the stored data, without downloading anything.
 | Download the current season now | Actions > Update data and site > Run workflow, tick "force refresh" |
 | Rebuild the site only | Actions > Update data and site > Run workflow, mode "publish" |
 | New cadre lists or limits (each autumn) | Edit `cadres.json`: replace the athletes rows, the dates and the PDF links (or ask Claude) |
+| New championship dates or entry standards | Edit `planner.json`: the `championships` rows, with the link they were copied from |
+| A meeting shows no travel estimate | The build log lists "venues without coordinates": add them under `venues` in `planner.json` |
 | Something failed | GitHub emails you; the run page shows the reason at the bottom of the step that failed |
 
 ## Privacy
@@ -55,7 +57,26 @@ the site from the stored data, without downloading anything.
 | `build_site.py` | Turns the database into the static site (streams from SQLite, about 140 MB of memory) |
 | `web/` | The page itself: `index.html`, `app.js`, `style.css`, fonts |
 | `make_demo_db.py` | Fake database to preview the site without real data |
+| `planner.json` | Season planner: championships to pick as objectives, their entry standards, departure cities, venue coordinates the lookup misses, Omio link settings |
 | `cadres.json` | Official Swiss Athletics cadre lists (Swiss Starters, Swiss Starters Future) and Swiss Starters limits, shown on profiles and the Cadres page |
+
+## Season planner (`#/plan`)
+
+An athlete picks an event, a current level, a target mark, a departure city and one or more objectives
+(Swiss championships, international championships with their entry standards, or any date). For each objective
+the page proposes races in three windows: 7 to 3 weeks before, 3 weeks to 6 days before, and up to 3 weeks after.
+
+* Races come from the results themselves: `build_site.py` writes, per discipline, the marks run at every meeting
+  of the last 3 seasons (`plan/<d>.json`, numbers only, adults only). A meeting ranks higher when more marks
+  there fall between the athlete's level and target. Meetings abroad appear because Alabus holds the results of
+  Swiss-licensed athletes abroad; a meeting no Swiss athlete entered is unknown to the planner.
+* Next year's dates are the usual weekday of the last edition, shown as "to be confirmed": there is no
+  calendar feed yet.
+* Travel time and cost are estimates from the straight-line distance (no timetable), used to filter
+  "reachable in a weekend". The route link opens Google Maps; the Omio link opens a prefilled search only
+  once city ids from Omio's affiliate Deep Link Creator file are added under `omio.ids` in `planner.json`
+  (`omio.params` takes the affiliate marker).
+* Choices are kept in the visitor's browser only.
 
 ## One-time setup (already done for pmcintyr/athletes)
 

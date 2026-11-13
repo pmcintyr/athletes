@@ -2,3 +2,4 @@ httpx
 pandas
 lxml
 beautifulsoup4
+geonamescache>=2.0  # coordinates of meeting venues for the season planner (build_site.py works without it)

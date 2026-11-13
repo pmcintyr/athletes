@@ -1,6 +1,6 @@
 "use strict";
 /* Static athlete-profile site. Data files are produced by build_site.py; routes use the URL hash
-   (#/a/<id>, #/h2h/<id>/<id>, #/l/<year>/<out|in>/<M|W>) so GitHub Pages never needs a server. */
+   (#/a/<id>, #/h2h/<id>/<id>, #/l/<year>/<out|in>/<M|W>, #/plan) so GitHub Pages never needs a server. */
 
 const app = document.getElementById("app");
 let META = null;
@@ -119,7 +119,9 @@ function home() {
       <a href="#/l/${y}/out/W">Femmes, plein air</a>
       <a href="#/l/${y}/in/M">Hommes, en salle</a>
       <a href="#/l/${y}/in/W">Femmes, en salle</a>
-    </div>`;
+    </div>
+    ${META.plan ? `<h2>Planifier ma saison</h2>
+    <p class="lede small">Partez de vos objectifs : les courses à placer avant et après, là où l'on court à votre niveau, à portée de train. <a href="#/plan">Ouvrir le planificateur</a></p>` : ""}`;
   const s = searchBox({ label: "Rechercher un athlète", placeholder: "Nom ou prénom", link: e => athleteHref(e[0], e[1]) });
   app.querySelector("#s").replaceWith(s);
   s.querySelector("input").focus();
@@ -203,6 +205,7 @@ async function profile(id) {
         ${a.c ? `<span>Club <strong>${esc(a.c)}</strong></span>` : ""}
         ${a.cs.length > 1 ? `<span>Avant : ${a.cs.slice(0, -1).reverse().map(esc).join(", ")}</span>` : ""}
         ${a.pg ? `<span><a href="p/${id}.html">Lien à partager</a></span>` : ""}
+        ${META.plan ? `<span><a href="#/plan/${id}">Planifier ma saison</a></span>` : ""}
       </div>
       ${(a.lim || []).length ? `<p class="limit">${esc((META.limit_name || "").replace(/^Limites/, "Limite"))} ${META.limit_year} réalisée : ${a.lim.map(([ev, mark, lim, date, indoor]) =>
         `<strong>${esc(ev)} ${esc(mark)}</strong>${indoor ? " (salle)" : ""} <span class="muted">(limite ${esc(lim)})</span>`).join(", ")}. <a href="#/cadres">Voir les cadres</a></p>` : ""}
@@ -379,6 +382,309 @@ async function cadresPage() {
     </section>` : ""}`;
 }
 
+/* ---------- season planner (#/plan) ----------
+   Data: planner.json (championships, standards, departure cities) and plan/<d>.json (marks run at each meeting
+   over the last seasons, from build_site.py). Everything is computed in the browser; choices stay in localStorage. */
+const DAY = 86400000;
+const WD = ["di", "lu", "ma", "me", "je", "ve", "sa"];
+const pDate = iso => { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+const toISO = t => new Date(t).toISOString().slice(0, 10);
+const addDays = (iso, n) => toISO(pDate(iso).getTime() + n * DAY);
+const fmtDay = iso => `${WD[pDate(iso).getUTCDay()]} ${fmtDate(iso)}`;
+const fmtSpan = (a, b) => (b && b !== a ? `${fmtDate(a).slice(0, a.slice(0, 7) === b.slice(0, 7) ? 3 : 6)} au ${fmtDate(b)}` : fmtDate(a));
+const fmtHours = h => { const q = Math.round(h * 4) / 4, m = Math.round((q % 1) * 60); return `${Math.floor(q)} h${m ? " " + m : ""}`; };
+
+function saved(key, val) {
+  try {
+    if (val === undefined) return JSON.parse(localStorage.getItem(key));
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch { /* private window: the planner works without remembering */ }
+  return null;
+}
+
+/* The same weekday in another year: 16.05.2026 (a Saturday) becomes Saturday 15.05.2027. */
+function projectDate(iso, year) {
+  const d = pDate(iso), same = Date.UTC(year, d.getUTCMonth(), d.getUTCDate());
+  let t = d.getTime() + (year - d.getUTCFullYear()) * 364 * DAY;
+  while (t - same > 3 * DAY) t -= 7 * DAY;
+  while (same - t > 3 * DAY) t += 7 * DAY;
+  return toISO(t);
+}
+
+/* Door-to-door estimate from the straight-line distance: no timetable, an order of magnitude to sort and filter with. */
+function travel(home, v) {
+  if (!home || v.length < 3) return null;
+  const rad = x => x * Math.PI / 180, [, la1, lo1] = home, [, la2, lo2] = v;
+  const a = Math.sin(rad(la2 - la1) / 2) ** 2 + Math.cos(rad(la1)) * Math.cos(rad(la2)) * Math.sin(rad(lo2 - lo1) / 2) ** 2;
+  const km = 6371 * 2 * Math.asin(Math.sqrt(a)) * 1.25;
+  return km < 8 ? { km, h: 0.5, chf: 0 } : { km, h: 1 + km / 95, chf: Math.max(5, Math.round(km * 0.4 / 5) * 5) };
+}
+
+function weekendFit(iso, t) {
+  if (!t) return { k: "unk", txt: "trajet à estimer" };
+  const wd = pDate(iso).getUTCDay(), we = wd === 0 || wd === 6;
+  if (t.h <= 3) return { k: "ok", txt: we ? "aller-retour dans la journée" : "aller-retour dans la journée, en semaine" };
+  if (wd === 6 && t.h <= 9) return { k: "ok", txt: t.h <= 5 ? "faisable en un week-end" : "week-end, départ le vendredi soir" };
+  if (wd === 0 && t.h <= 5) return { k: "ok", txt: "week-end, retour le dimanche soir" };
+  if (wd === 5 && t.h <= 6) return { k: "mid", txt: "vendredi : une demi-journée de congé" };
+  return { k: "no", txt: wd === 6 ? "trop loin pour un week-end" : wd === 0 ? "retour le lundi" : "congé nécessaire" };
+}
+
+const PHASES = [
+  { k: "build", name: "Montée en puissance", from: -49, to: -22, hint: "7 à 3 semaines avant : une ou deux courses pour retrouver le rythme de compétition." },
+  { k: "sharp", name: "Affûtage", from: -21, to: -6, hint: "3 semaines à 6 jours avant : la dernière course rapide avant l'objectif." },
+  { k: "after", name: "Après l'objectif", from: 4, to: 24, end: true, hint: "Dans les 3 semaines qui suivent : une ou deux courses pour profiter de la forme." },
+];
+
+async function planPage(athId) {
+  document.title = `Planifier ma saison – ${META.title}`;
+  if (!META.plan || !META.plan.disc.length) return notFound("Le planificateur n'est pas encore disponible.");
+  let CFG;
+  try { CFG = await getJSON("planner.json"); } catch { return notFound("Le planificateur n'est pas encore disponible."); }
+  const events = new Map();  // Alabus label -> { out: d, in: d }
+  META.plan.disc.forEach(d => { const e = events.get(D(d)[1]) || {}; e[D(d)[0] ? "in" : "out"] = d; events.set(D(d)[1], e); });
+  const anyD = label => { const e = events.get(label) || {}; return e.out ?? e.in; };
+  const today = toISO(Date.now());
+  const champs = CFG.championships.filter(c => (c.end || c.start) >= today);
+  const st = Object.assign({ ath: null, athName: "", sex: "M", ev: "", level: "", target: "", home: CFG.homes[0][0], maxh: 0, weekend: false,
+    objs: champs.filter(c => c.default).map(c => c.id), custom: [], picks: [] }, saved("plan.v1") || {});
+  if (!events.has(st.ev)) st.ev = events.has("1500 m") ? "1500 m" : events.keys().next().value;
+  st.custom = st.custom.filter(c => c.date >= today);
+
+  let ath = null;
+  const pbOf = label => {  // best personal best of the loaded athlete in this event, indoor or outdoor
+    if (!ath) return "";
+    const rows = ath.pb.filter(p => D(p[0])[1] === label).map(p => [markValue(p[1]), p[1], p[0]]).filter(x => x[0] !== null);
+    rows.sort((x, y) => sortv(x[2], x[0]) - sortv(y[2], y[0]));
+    return rows.length ? rows[0][1] : "";
+  };
+  if (athId && athId !== st.ath) {
+    ath = await loadAthlete(athId);
+    if (ath) {
+      const first = ath.pb.map(p => D(p[0])[1]).find(l => events.has(l));
+      Object.assign(st, { ath: athId, athName: ath.n, sex: ath.s === "W" ? "W" : "M", ev: first || st.ev, target: "" });
+      st.level = pbOf(st.ev);
+    }
+  } else if (st.ath) ath = await loadAthlete(st.ath);
+
+  const evOpts = [...events.keys()].map(l => `<option value="${esc(l)}"${l === st.ev ? " selected" : ""}>${esc(dName(anyD(l)))}</option>`).join("");
+  app.innerHTML = `
+    <section class="profile-head">
+      <h1>Planifier ma saison</h1>
+      <p class="lede">Choisissez vos objectifs : le planificateur propose les courses à placer avant et après, là où l'on court à votre niveau, et accessibles depuis chez vous.</p>
+    </section>
+    <form id="pf" class="plan-form" onsubmit="return false">
+      <div id="pwho"></div>
+      <div class="controls">
+        <label>Épreuve <select name="ev">${evOpts}</select></label>
+        <span class="seg" role="group" aria-label="Sexe"><a href="#" data-sex="M">Hommes</a><a href="#" data-sex="W">Femmes</a></span>
+        <label>Mon niveau actuel <input name="level" type="text" inputmode="decimal" size="8" placeholder="3:45.00" value="${esc(st.level)}"></label>
+        <label>Mon objectif <input name="target" type="text" inputmode="decimal" size="8" placeholder="3:40.00" value="${esc(st.target)}"></label>
+      </div>
+      <div class="controls">
+        <label>Départ de <select name="home">${CFG.homes.map(h => `<option${h[0] === st.home ? " selected" : ""}>${esc(h[0])}</option>`).join("")}</select></label>
+        <label>Trajet aller au plus <select name="maxh">${[[0, "Sans limite"], [2, "2 h"], [3, "3 h"], [4, "4 h"], [6, "6 h"], [9, "9 h"]].map(([v, t]) => `<option value="${v}"${+st.maxh === v ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+        <label class="check"><input name="weekend" type="checkbox"${st.weekend ? " checked" : ""}> Faisable en un week-end, sans congé</label>
+      </div>
+      <fieldset class="objs"><legend>Mes objectifs</legend><div id="pobj"></div>
+        <div class="controls add-obj">
+          <label>Autre objectif <input name="cname" type="text" size="18" placeholder="Nom de la compétition"></label>
+          <label>Date <input name="cdate" type="date" min="${today}"></label>
+          <label class="check"><input name="cin" type="checkbox"> En salle</label>
+          <button type="button" class="more" id="cadd">Ajouter</button>
+        </div>
+      </fieldset>
+    </form>
+    <div id="pout" aria-live="polite"></div>`;
+  const form = app.querySelector("#pf"), out = app.querySelector("#pout");
+
+  const who = () => {
+    const box = app.querySelector("#pwho");
+    if (st.ath && st.athName) {
+      box.innerHTML = `<p class="plan-who">Plan pour <a href="${athleteHref(st.ath, st.athName)}"><strong>${esc(st.athName)}</strong></a> <button type="button" class="link" id="pclear">changer</button></p>`;
+      box.querySelector("#pclear").addEventListener("click", () => { st.ath = null; st.athName = ""; ath = null; saved("plan.v1", st); who(); });
+    } else {
+      box.innerHTML = "";
+      box.append(searchBox({ label: "Partir de mon profil (facultatif)", placeholder: "Nom ou prénom", small: true, link: e => `#/plan/${e[0]}` }));
+    }
+  };
+  const objectives = () => [...champs.filter(c => st.objs.includes(c.id)), ...st.custom.map((c, i) => ({ id: `c${i}`, name: c.name, start: c.date, end: c.date, indoor: c.indoor ? 1 : 0, custom: true }))]
+    .sort((a, b) => (a.start < b.start ? -1 : 1));
+  const drawObjs = () => {
+    app.querySelector("#pobj").innerHTML = `<ul class="plain">${champs.map(c => `<li><label class="check"><input type="checkbox" data-obj="${esc(c.id)}"${st.objs.includes(c.id) ? " checked" : ""}>
+        <span><strong>${esc(c.name)}</strong> <span class="muted">· ${fmtSpan(c.start, c.end)}, ${esc(c.place)}</span></span></label></li>`).join("")}
+      ${st.custom.map((c, i) => `<li><span class="check"><span><strong>${esc(c.name)}</strong> <span class="muted">· ${fmtDate(c.date)}${c.indoor ? ", en salle" : ""}</span>
+        <button type="button" class="link" data-del="${i}">retirer</button></span></span></li>`).join("")}</ul>`;
+  };
+
+  /* candidate races for one objective, grouped by phase */
+  function candidates(obj, doc, d, home) {
+    const lowerB = lower(d), lv = markValue(st.level), tg = markValue(st.target);
+    const ref = tg ?? lv, a = ref === null ? null : sortv(d, ref), b = sortv(d, lv ?? ref);
+    const lo = a === null ? null : Math.min(a, b) - Math.abs(ref) * 0.015, hi = a === null ? null : Math.max(a, b) + Math.abs(ref) * 0.015;
+    const res = PHASES.map(() => []);
+    (doc[st.sex] || []).forEach(([name, vi, champ, editions]) => {
+      const lastEd = editions[editions.length - 1], lastYear = +lastEd[0].slice(0, 4);
+      if (lastYear < META.plan.to - 1) return;  // not held for two seasons
+      const all = editions.flatMap(e => e[1]);
+      const zone = a === null ? 0 : all.filter(v => sortv(d, v) >= lo && sortv(d, v) <= hi).length / editions.length;
+      const hit = tg === null ? 0 : all.filter(v => sortv(d, v) <= sortv(d, tg)).length / editions.length;
+      const v = doc.v[vi], t = travel(home, v);
+      PHASES.forEach((ph, pi) => {
+        const base = ph.end ? (obj.end || obj.start) : obj.start, from = addDays(base, ph.from), to = addDays(base, ph.to);
+        const seen = new Set();
+        editions.filter(e => e[0].slice(0, 4) === String(lastYear)).forEach(e => {
+          [from.slice(0, 4), to.slice(0, 4)].forEach(y => {
+            const real = e[0].slice(0, 4) === y, date = real ? e[0] : projectDate(e[0], +y);
+            if (date < from || date > to || date < today || seen.has(date)) return;
+            seen.add(date);
+            const vals = e[1], med = vals[Math.floor((vals.length - 1) / 2)];
+            res[pi].push({ key: `${name}|${v[0]}|${date}`, name, venue: v, champ, date, real, last: e[0], n: vals.length, best: vals[0], med,
+              eds: editions.length, zone, hit, t, fit: weekendFit(date, t), score: a === null ? all.length / editions.length : zone + hit * 0.5 });
+          });
+        });
+      });
+    });
+    return res.map(list => list.filter(c => (!+st.maxh || (c.t && c.t.h <= +st.maxh)) && (!st.weekend || c.fit.k === "ok"))
+      .sort((x, y) => y.score - x.score || (x.t ? x.t.h : 99) - (y.t ? y.t.h : 99)));
+  }
+
+  const picked = key => st.picks.some(p => p.key === key);
+  function raceCard(c, d, home, obj) {
+    const place = c.venue[0] || "lieu inconnu";
+    const maps = c.t ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(home[0] + ", Suisse")}&destination=${c.venue[1]},${c.venue[2]}&travelmode=transit` : "";
+    const o = CFG.omio || {}, ids = o.ids || {}, from = ids[home[0]], to = ids[c.venue[0]];
+    const q = [from && to ? `departure_fk=${encodeURIComponent(from)}&arrival_fk=${encodeURIComponent(to)}` : "", o.params || ""].filter(Boolean).join("&");
+    const omio = o.site && c.t && c.t.km >= 8 ? o.site + (q ? "?" + q : "") : "";
+    const lv = markValue(st.level), tg = markValue(st.target);
+    return `<li class="race">
+      <div class="race-top"><span class="race-name">${esc(c.name)}${c.champ ? `<span class="tag w">championnat</span>` : ""}</span>
+        <span class="race-date num">${fmtDay(c.date)}</span></div>
+      <p class="race-meta">${esc(place)} · ${c.real ? "date de l'édition " + c.date.slice(0, 4) : `date habituelle, à confirmer (édition ${c.last.slice(0, 4)} : ${fmtDay(c.last)})`}</p>
+      <p class="race-meta">Édition ${c.last.slice(0, 4)} : ${c.n} résultat${c.n > 1 ? "s" : ""}, meilleur <strong class="num">${fmtVal(c.best, d)}</strong>${c.n > 2 ? `, médiane <span class="num">${fmtVal(c.med, d)}</span>` : ""}.
+        ${lv !== null || tg !== null ? `${c.zone ? `<strong>${(Math.round(c.zone * 10) / 10).toLocaleString("fr-CH")}</strong> par édition dans votre zone` : "Personne dans votre zone"}${tg !== null ? `, ${c.hit ? (Math.round(c.hit * 10) / 10).toLocaleString("fr-CH") : "aucun"} à ${esc(st.target)} ou mieux` : ""} <span class="muted">(${c.eds} édition${c.eds > 1 ? "s" : ""})</span>.` : ""}</p>
+      <p class="race-meta"><span class="fit ${c.fit.k}">${esc(c.fit.txt)}</span>${c.t ? (c.t.chf ? ` environ ${fmtHours(c.t.h)} de porte à porte, environ ${c.t.chf} CHF aller-retour` : " sur place") : ""}</p>
+      <p class="race-act"><button type="button" class="link" data-pick="${esc(c.key)}" data-obj="${esc(obj.id)}">${picked(c.key) ? "Retirer de ma saison" : "Ajouter à ma saison"}</button>
+        ${maps ? `<a href="${maps}" target="_blank" rel="noopener">Itinéraire</a>` : ""}${omio ? `<a href="${esc(omio)}" target="_blank" rel="noopener">Billets sur Omio</a>` : ""}</p>
+    </li>`;
+  }
+
+  function standardRow(c, label, d) {
+    const S = c.standards, e = S && S.events.find(x => (x.labels[st.sex] || []).includes(label));
+    if (!e) return null;
+    const lv = markValue(st.level), val = markValue(e[st.sex]);
+    let gap = "";
+    if (lv !== null && val !== null) {
+      const diff = sortv(d, lv) - sortv(d, val);
+      gap = diff <= 0 ? `<span class="win">à votre niveau</span>` : `à ${lower(d) && diff >= 60 ? fmtVal(diff, d) : diff.toFixed(2)}${lower(d) ? " s" : D(d)[1].includes("kampf") ? " pts" : " m"}`;
+    }
+    const alt = e.out ? ` <span class="muted">ou ${esc(e.out[st.sex === "M" ? 1 : 2])} en plein air${e.out[0] !== e.name ? ` (${esc(e.out[0])})` : ""}</span>` : "";
+    return `<tr><td>${esc(c.name)} <span class="muted">· ${esc(c.place)}</span></td><td class="dt">${fmtSpan(c.start, c.end)}</td>
+      <td class="mk r">${esc(e[st.sex])}</td><td>${alt}${gap ? `${alt ? " · " : ""}${gap}` : ""}</td>
+      <td class="hide-s dt">${fmtDate(S.window[0])} au ${fmtDate(S.window[1])}</td></tr>`;
+  }
+
+  function timeline(objs, picks) {
+    if (!objs.length) return "";
+    const t0 = pDate(addDays(objs[0].start, -56)).getTime(), t1 = pDate(addDays(objs[objs.length - 1].end || objs[objs.length - 1].start, 31)).getTime();
+    const W = 940, L = 8, X = iso => L + (W - 2 * L) * (pDate(iso).getTime() - t0) / (t1 - t0);
+    let g = "";
+    for (let m = new Date(Date.UTC(new Date(t0).getUTCFullYear(), new Date(t0).getUTCMonth() + 1, 1)); m.getTime() < t1; m.setUTCMonth(m.getUTCMonth() + 1)) {
+      const x = X(toISO(m.getTime())).toFixed(1);
+      g += `<line class="grid" x1="${x}" x2="${x}" y1="18" y2="74"/><text class="axis" x="${+x + 4}" y="12">${m.toLocaleDateString("fr-CH", { month: "short", timeZone: "UTC" })} ${String(m.getUTCFullYear()).slice(2)}</text>`;
+    }
+    objs.forEach(o => {
+      PHASES.forEach(ph => {
+        const base = ph.end ? (o.end || o.start) : o.start, x = X(addDays(base, ph.from)), w = X(addDays(base, ph.to)) - x;
+        g += `<rect class="ph ${ph.k}" x="${x.toFixed(1)}" y="30" width="${w.toFixed(1)}" height="32" rx="3"><title>${ph.name}</title></rect>`;
+      });
+      const x = X(o.start), w = Math.max(5, X(o.end || o.start) - x + 5);
+      g += `<rect class="goal" x="${x.toFixed(1)}" y="24" width="${w.toFixed(1)}" height="44" rx="2"><title>${esc(o.name)}, ${fmtSpan(o.start, o.end)}</title></rect>`;
+    });
+    picks.forEach(p => { if (pDate(p.date).getTime() > t0 && pDate(p.date).getTime() < t1) g += `<circle class="pick" cx="${X(p.date).toFixed(1)}" cy="46" r="6"><title>${esc(p.name)}, ${fmtDay(p.date)}</title></circle>`; });
+    return `<svg class="chart tl" viewBox="0 0 ${W} 82" role="img" aria-label="Calendrier de la saison : objectifs, phases et courses choisies">${g}</svg>
+      <p class="note tl-key"><span class="key goal"></span>objectif <span class="key build"></span>montée en puissance <span class="key sharp"></span>affûtage <span class="key after"></span>après l'objectif <span class="key pick"></span>course choisie</p>`;
+  }
+
+  let seq = 0;
+  const open = new Set();
+  async function draw() {
+    const my = ++seq, objs = objectives(), home = CFG.homes.find(h => h[0] === st.home) || CFG.homes[0], ev = events.get(st.ev) || {};
+    form.querySelectorAll("[data-sex]").forEach(x => x.setAttribute("aria-current", String(x.dataset.sex === st.sex)));
+    st.picks = st.picks.filter(p => p.date >= today && objs.some(o => o.id === p.obj));
+    saved("plan.v1", st);
+    const docs = {};
+    await Promise.all(["out", "in"].map(async k => { if (ev[k] !== undefined) { try { docs[k] = await getJSON(`plan/${ev[k]}.json`); } catch { /* shown as missing below */ } } }));
+    if (my !== seq) return;
+    const dAny = anyD(st.ev), evName = dName(dAny);
+    const rows = champs.map(c => standardRow(c, st.ev, c.indoor && ev.in !== undefined ? ev.in : dAny)).filter(Boolean);
+    const season = [...objs.map(o => ({ date: o.start, goal: o })), ...st.picks.map(p => ({ date: p.date, pick: p }))].sort((x, y) => (x.date < y.date ? -1 : 1));
+    out.innerHTML = `
+      ${objs.length ? `<h2>Ma saison</h2>${timeline(objs, st.picks)}
+        <ul class="season">${season.map(x => x.goal
+          ? `<li class="goal"><span class="num">${fmtSpan(x.goal.start, x.goal.end)}</span><span><strong>${esc(x.goal.name)}</strong>${x.goal.place ? ` <span class="muted">· ${esc(x.goal.place)}</span>` : ""}</span></li>`
+          : `<li><span class="num">${fmtDay(x.pick.date)}</span><span>${esc(x.pick.name)} <span class="muted">· ${esc(x.pick.venue)}${x.pick.real ? "" : ", date à confirmer"}</span> <button type="button" class="link" data-pick="${esc(x.pick.key)}">retirer</button></span></li>`).join("")}</ul>
+        ${st.picks.length ? "" : `<p class="note">Ajoutez des courses depuis les propositions ci-dessous : elles apparaissent ici, dans l'ordre de la saison.</p>`}` : `<p class="empty">Cochez au moins un objectif pour voir les courses proposées.</p>`}
+      ${objs.map(o => {
+        const k = o.indoor ? "in" : "out", d = ev[k], doc = docs[k];
+        const head = `<section class="list-sec obj"><h2>${esc(o.name)} <span class="muted">· ${fmtSpan(o.start, o.end)}${o.place ? `, ${esc(o.place)}` : ""}</span></h2>`;
+        if (d === undefined || !doc) return `${head}<p class="empty">Pas de résultats ${o.indoor ? "en salle" : "en plein air"} pour ${esc(evName)} : aucune proposition pour cet objectif.</p></section>`;
+        const lists = candidates(o, doc, d, home), std = o.standards ? standardRow(o, st.ev, d) : null;
+        return `${head}
+          ${std ? `<p class="limit">Minima ${esc(evName)} : <strong class="num">${esc(o.standards.events.find(x => (x.labels[st.sex] || []).includes(st.ev))[st.sex])}</strong>, à réaliser du ${fmtDate(o.standards.window[0])} au ${fmtDate(o.standards.window[1])}. <a href="#pmin">Voir les minima</a></p>` : ""}
+          ${PHASES.map((ph, pi) => {
+            const base = ph.end ? (o.end || o.start) : o.start, id = `${o.id}|${ph.k}`, list = lists[pi], n = open.has(id) ? list.length : 4;
+            return `<h3>${ph.name} <span class="muted">· ${fmtDate(addDays(base, ph.from)).slice(0, 6)} au ${fmtDate(addDays(base, ph.to))}</span></h3>
+              <p class="note">${ph.hint}</p>
+              ${list.length ? `<ul class="races">${list.slice(0, n).map(c => raceCard(c, d, home, o)).join("")}</ul>
+                ${list.length > n ? `<p><button type="button" class="more" data-open="${esc(id)}">Afficher les ${list.length - n} autres</button></p>` : ""}`
+                : `<p class="empty small">Aucune course connue dans cette période avec ces critères.</p>`}`;
+          }).join("")}</section>`;
+      }).join("")}
+      ${rows.length ? `<section class="list-sec" id="pmin"><h2>Minima ${esc(evName)}, ${st.sex === "W" ? "femmes" : "hommes"}</h2>
+        <div class="tbl-wrap"><table><thead><tr><th>Championnat</th><th>Dates</th><th class="r">Minima</th><th></th><th class="hide-s">Période de qualification</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
+        ${champs.filter(c => c.standards).map(c => `<details class="std"><summary>${esc(c.name)} : toutes les épreuves</summary>
+          <p class="note">${esc(c.standards.note || "")} <a href="${esc(c.standards.source)}" rel="noopener">Source</a></p>
+          <div class="tbl-wrap"><table><thead><tr><th>Épreuve</th><th class="r">Hommes</th><th class="r">Femmes</th>${c.standards.events.some(e => e.out) ? `<th class="hide-s">Équivalent en plein air</th>` : ""}</tr></thead>
+          <tbody>${c.standards.events.map(e => `<tr><td>${esc(e.name)}</td><td class="r num">${esc(e.M)}</td><td class="r num">${esc(e.W)}</td>${c.standards.events.some(x => x.out) ? `<td class="hide-s muted">${e.out ? `${esc(e.out[0])} : ${esc(e.out[1])} / ${esc(e.out[2])}` : ""}</td>` : ""}</tr>`).join("")}</tbody></table></div></details>`).join("")}
+      </section>` : ""}
+      <p class="note">Les propositions viennent des résultats des saisons ${META.plan.from} à ${META.plan.to} enregistrés par Swiss Athletics : ce sont les compétitions où des athlètes licenciés en Suisse ont couru, en Suisse comme à l'étranger. « Votre zone » compte les résultats entre votre niveau et votre objectif (à 1,5 % près). Les dates ${META.plan.to + 1} sont reprises du jour habituel de chaque compétition : vérifiez-les auprès de l'organisateur avant de réserver. Durées et prix sont des ordres de grandeur calculés d'après la distance, pas des horaires.</p>`;
+  }
+
+  form.addEventListener("input", e => {
+    const t = e.target;
+    if (t.dataset.obj) st.objs = t.checked ? [...new Set([...st.objs, t.dataset.obj])] : st.objs.filter(x => x !== t.dataset.obj);
+    else if (t.name === "weekend") st.weekend = t.checked;
+    else if (["ev", "level", "target", "home", "maxh"].includes(t.name)) {
+      st[t.name] = t.value.trim();
+      if (t.name === "ev") { st.target = form.target.value = ""; st.level = form.level.value = pbOf(st.ev); }
+    } else return;
+    draw();
+  });
+  form.addEventListener("click", e => {
+    const t = e.target;
+    if (t.dataset.sex) { e.preventDefault(); st.sex = t.dataset.sex; draw(); }
+    else if (t.id === "cadd") {
+      const name = form.cname.value.trim(), date = form.cdate.value;
+      if (!name || !date || date < today) { form.cname.focus(); return; }
+      st.custom.push({ name, date, indoor: form.cin.checked });
+      form.cname.value = form.cdate.value = ""; form.cin.checked = false;
+      drawObjs(); draw();
+    } else if (t.dataset.del !== undefined) { st.custom.splice(+t.dataset.del, 1); st.picks = []; drawObjs(); draw(); }
+  });
+  out.addEventListener("click", e => {
+    const t = e.target;
+    if (t.dataset.open) { open.add(t.dataset.open); draw(); }
+    else if (t.dataset.pick) {
+      const key = t.dataset.pick, [name, venue, date] = key.split("|");
+      if (picked(key)) st.picks = st.picks.filter(p => p.key !== key);
+      else st.picks.push({ key, name, venue, date, obj: t.dataset.obj, real: +date.slice(0, 4) <= META.plan.to });
+      draw();
+    }
+  });
+  who(); drawObjs(); await draw();
+}
+
 function notFound(msg) {
   document.title = META ? META.title : document.title;
   app.innerHTML = `<section class="hero"><h1>Introuvable</h1><p class="lede">${esc(msg)}</p><p><a href="#/">Retour à la recherche</a></p></section>`;
@@ -388,14 +694,16 @@ function notFound(msg) {
 async function route() {
   const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   document.querySelectorAll(".top-nav a").forEach(x => x.removeAttribute("aria-current"));
-  const nav = document.querySelector(`.top-nav a[href="${parts[0] === "l" ? "#/l" : parts[0] === "cadres" ? "#/cadres" : "#/"}"]`);
-  if (nav && (parts[0] === "l" || parts[0] === "cadres" || !parts.length)) nav.setAttribute("aria-current", "page");
+  const section = ["l", "cadres", "plan"].includes(parts[0]) ? `#/${parts[0]}` : "#/";
+  const nav = document.querySelector(`.top-nav a[href="${section}"]`);
+  if (nav && (section !== "#/" || !parts.length)) nav.setAttribute("aria-current", "page");
   window.scrollTo(0, 0);
   try {
     if (parts[0] === "a" && parts[1]) await profile(parts[1]);
     else if (parts[0] === "h2h" && parts[1] && parts[2]) await h2h(parts[1], parts[2]);
     else if (parts[0] === "l") await lists(parts[1], parts[2], parts[3]);
     else if (parts[0] === "cadres") await cadresPage();
+    else if (parts[0] === "plan") await planPage(parts[1]);
     else home();
   } catch (err) {
     console.error(err);

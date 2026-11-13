@@ -24,7 +24,11 @@ LAST = ["Demierre", "Rochat", "Bühler", "Favre", "Gerber", "Monnier", "Keller",
         "Chappuis", "Rossier", "Bärtschi", "Pittet", "Schmid", "Vuilleumier", "Huber", "Cuendet", "Brügger", "Jaquet"]
 CLUBS = ["CA Demo Léman", "LV Beispiel Aare", "FSG Exemple Jura", "TV Muster Seeland", "CEP Fictif Riviera", "LC Probe Rhein"]
 MEETS = [("Meeting de démonstration", "Lausanne"), ("Abendmeeting Beispiel", "Bern"), ("Meeting fictif du Léman", "Genève"),
-         ("Pfingstmeeting Muster", "Zofingen"), ("Meeting d'été exemple", "La Chaux-de-Fonds")]
+         ("Pfingstmeeting Muster", "Zofingen"), ("Meeting d'été exemple", "La Chaux-de-Fonds"),
+         # invented meetings in real towns abroad, written like Alabus does ("Town (IOC code)"), for the season planner
+         ("Meeting fictif du Rhin", "Karlsruhe (GER)"), ("Soirée exemple des Flandres", "Oordegem (BEL)"),
+         ("Meeting de démonstration du Rhône", "Lyon (FRA)"), ("Beispiel-Laufnacht", "Regensburg (GER)"),
+         ("Meeting exemple de la Thur", "St. Gallen"), ("Meeting fictif de Macolin", "Magglingen")]
 SM = ("Schweizer Meisterschaften Aktive", "Zürich")
 # label, indoor, lower_better, sex ('' = both), base value (M), spread
 EVENTS = [("100 m", 0, 1, "", 10.9, 0.6), ("200 m", 0, 1, "", 22.1, 1.2), ("400 m", 0, 1, "", 49.5, 3.0),
@@ -59,7 +63,7 @@ def main():
     con = sqlite3.connect(a.out)
     con.execute("DROP TABLE IF EXISTS allresults")
     con.execute(SQL.format(t="allresults"))
-    nr = 0
+    nr, days = 0, {}
     for i in range(a.athletes):
         sex = random.choice("MW")
         name = f"{random.choice(FIRST_M if sex == 'M' else FIRST_W)} {random.choice(LAST)}"
@@ -82,8 +86,10 @@ def main():
                     club = random.choice(CLUBS)
                 for _ in range(random.randint(2, 6)):
                     meet, loc = random.choice(MEETS + [SM] * 1)
-                    month = random.randint(1, 3) if indoor else random.randint(5, 9)
-                    date = f"{season}-{month:02d}-{random.randint(1, 28):02d}"
+                    if (meet, indoor) not in days:  # each meeting keeps its place in the calendar from year to year
+                        days[(meet, indoor)] = (random.randint(1, 3) if indoor else random.randint(5, 9), random.randint(1, 28))
+                    month, day = days[(meet, indoor)]
+                    date = f"{season}-{month:02d}-{day:02d}"
                     v = level + random.gauss(0, spread * 0.08) * (1 if lower else -1)
                     v = round(max(v, base * 0.5), 2)
                     wind = round(random.uniform(-1.5, 3.2), 1) if (not indoor and label in ("100 m", "200 m", "Weit", "110 mH 1.067", "100 mH 0.838")) else None

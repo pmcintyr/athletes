@@ -11,6 +11,8 @@ Output (site/ by default) is plain static files for GitHub Pages: no server, no 
   a/<xyz>.json                    athlete profiles, sharded by the first 3 characters of the public id
   idx/<ab>.json                   search index, sharded by the first 2 letters of each name part
   lists/<year>.json               top N per discipline, sex, indoor/outdoor and season
+  plan/<d>.json, planner.json     season planner: marks run at each meeting over the last seasons (no names),
+                                  venue coordinates, championships and entry standards from planner.json
   p/<id>.html                     plain HTML page per recently active athlete, for Google and link previews
   sitemap*.xml, robots.txt        written when --base-url is given
   meta.json                       disciplines, seasons, counts, build date
@@ -25,7 +27,8 @@ Privacy defaults
   * Public ids are salted hashes. The Alabus athlete_key is sha1(name|birth date), so publishing it
     would reveal the birth date. The salt is in .site_salt (on GitHub it comes from the SITE_KEY secret).
 
-No extra packages needed (standard library only).
+No extra packages needed (standard library only). With the optional geonamescache package installed, the
+venues of the season planner get coordinates (travel estimates); without it the planner still lists the meetings.
 """
 import argparse
 import hashlib
@@ -39,7 +42,7 @@ import sys
 import time
 import unicodedata
 from collections import defaultdict
-from datetime import datetime
+from datetime import date as Date, datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -384,6 +387,148 @@ class Cadres:
         return [v[1] for _, v in sorted(best.items())]
 
 
+# ---------- season planner: which marks were run at which meeting, and where that meeting is ----------
+# Alabus writes venues abroad as "Karlsruhe (GER)": IOC codes to the ISO codes of the city list.
+IOC_ISO = {"SUI": "CH", "GER": "DE", "FRA": "FR", "ITA": "IT", "AUT": "AT", "BEL": "BE", "NED": "NL", "LUX": "LU", "LIE": "LI",
+           "ESP": "ES", "POR": "PT", "GBR": "GB", "IRL": "IE", "DEN": "DK", "SWE": "SE", "NOR": "NO", "FIN": "FI", "ISL": "IS",
+           "POL": "PL", "CZE": "CZ", "SVK": "SK", "HUN": "HU", "SLO": "SI", "CRO": "HR", "SRB": "RS", "BIH": "BA", "MNE": "ME",
+           "MKD": "MK", "ALB": "AL", "GRE": "GR", "BUL": "BG", "ROU": "RO", "MDA": "MD", "UKR": "UA", "EST": "EE", "LAT": "LV",
+           "LTU": "LT", "TUR": "TR", "CYP": "CY", "MLT": "MT", "MON": "MC", "AND": "AD", "SMR": "SM", "ISR": "IL", "USA": "US",
+           "CAN": "CA", "MAR": "MA", "RSA": "ZA", "KEN": "KE", "ETH": "ET", "QAT": "QA", "UAE": "AE", "JPN": "JP", "CHN": "CN",
+           "AUS": "AU", "NZL": "NZ", "BRA": "BR", "MEX": "MX", "TUN": "TN", "ALG": "DZ", "KOR": "KR", "IND": "IN"}
+EUROPE = {v for k, v in IOC_ISO.items() if k not in ("USA", "CAN", "MAR", "RSA", "KEN", "ETH", "QAT", "UAE", "JPN", "CHN", "AUS",
+                                                     "NZL", "BRA", "MEX", "TUN", "ALG", "KOR", "IND")}
+
+
+def geo_norm(x):
+    n = unicodedata.normalize("NFKD", str(x)).encode("ascii", "ignore").decode().lower()
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", n).split())
+
+
+class Gazetteer:
+    """Venue name -> [lat, lon, country]. planner.json 'venues' first, then the GeoNames city list of the optional
+    geonamescache package (places of 1000+ inhabitants, with their names in other languages)."""
+
+    def __init__(self, manual):
+        self.manual = {str(k).strip(): v for k, v in (manual or {}).items()}
+        self.idx, self.cache, self.missed = None, {}, defaultdict(int)
+        try:
+            import geonamescache
+        except ImportError:
+            print("geonamescache is not installed: planner venues get no coordinates (pip install geonamescache)")
+            return
+        idx = {}
+        for c in geonamescache.GeonamesCache(min_city_population=1000).get_cities().values():
+            cc, pop = c["countrycode"], int(c.get("population") or 0)
+            names = [(c["name"], 1)] + ([(n, 0) for n in c.get("alternatenames") or []] if cc in EUROPE else [])
+            for n, primary in names:
+                k = (cc, geo_norm(n))
+                if k[1] and (k not in idx or (primary, pop) > idx[k][0]):
+                    idx[k] = ((primary, pop), round(float(c["latitude"]), 3), round(float(c["longitude"]), 3))
+        self.idx = idx
+
+    def find(self, venue):
+        v = s(venue).strip()
+        if v not in self.cache:
+            self.cache[v] = self._find(v)
+        if v and self.cache[v] is None:
+            self.missed[v] += 1
+        return self.cache[v]
+
+    def _find(self, v):
+        m = re.search(r"\(([A-Z]{3})\)\s*$", v)
+        ioc, base = (m.group(1), v[:m.start()]) if m else ("SUI", v)  # no code: Switzerland, as in alabus_scraper.py
+        if v in self.manual:
+            return [self.manual[v][0], self.manual[v][1], ioc]
+        cc = IOC_ISO.get(ioc)
+        if not v or self.idx is None or not cc:
+            return None
+        tries = [(base, 0)] + [(base.split(sep)[0], 0) for sep in ("/", ",", " - ") if sep in base]
+        toks = geo_norm(base).split()
+        tries += [(" ".join(toks[:n]), 5000) for n in range(len(toks) - 1, 0, -1)]  # "Zürich Letzigrund" -> "Zürich"
+        for text, min_pop in tries:
+            n = geo_norm(text)
+            for cand in (n, re.sub(r"^st ", "sankt ", n), re.sub(r"^st ", "saint ", n)):
+                hit = self.idx.get((cc, cand))
+                if hit and hit[0][1] >= min_pop:
+                    return [hit[1], hit[2], ioc]
+        return None
+
+
+def series_key(meeting):
+    """Same meeting from year to year: '42. Pfingstmeeting 2026 (WRC)' and '41. Pfingstmeeting 2025' are one series."""
+    m = re.sub(r"\((wrc|wcr)\)", " ", geo_norm(re.sub(r"\((WRC|WCR)\)", " ", s(meeting))))
+    return " ".join(re.sub(r"\d+", " ", m).split())
+
+
+def planner(con, disc, out, cfg, gaz):
+    """plan/<d>.json per discipline: for each meeting series of the last seasons, the marks run there (numbers only).
+    The browser turns them into race suggestions around an athlete's objectives."""
+    shutil.rmtree(out / "plan", ignore_errors=True)
+    (out / "plan").mkdir(parents=True, exist_ok=True)
+    last = con.execute("SELECT MAX(season) FROM r WHERE src < 2").fetchone()[0]
+    if not cfg or last is None:
+        return None
+    since = int(last) - int(cfg.get("seasons", 3)) + 1
+    q = """SELECT d.d, r.sex, r.meeting, r.location, r.date, r.mark_value
+           FROM r JOIN ath a ON a.athlete_key = r.athlete_key
+                  JOIN disc d ON d.indoor = r.indoor AND d.discipline = r.discipline
+           WHERE r.src < 2 AND r.season >= ? AND COALESCE(r.hand_timed, 0) = 0 AND r.sex IN ('M', 'W')
+             AND r.meeting IS NOT NULL AND r.date GLOB '[12][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9]'
+           ORDER BY d.d"""
+    written, n_series = [], 0
+
+    def flush(d, groups):
+        nonlocal n_series
+        if d is None or discipline_order(disc[d][1])[0] == 5:  # no relays
+            return
+        if sum(len(v) for g in groups.values() for v in g["days"].values()) < 20:
+            return
+        lower, venues, doc = disc[d][3] == 1, Dict(), {"M": [], "W": []}
+        for (sex, _, venue), g in groups.items():
+            days, editions = sorted(g["days"]), []
+            for day in days:  # heats and finals on consecutive days are one edition, dated on its busiest day
+                prev = editions[-1] if editions else None
+                if prev and (Date.fromisoformat(day) - Date.fromisoformat(prev["last"])).days <= 2:
+                    prev["last"] = day
+                    prev["vals"] += g["days"][day]
+                    if len(g["days"][day]) > prev["n"]:
+                        prev["day"], prev["n"] = day, len(g["days"][day])
+                else:
+                    editions.append({"day": day, "last": day, "n": len(g["days"][day]), "vals": list(g["days"][day])})
+            doc[sex].append([g["name"], venues(venue), int(is_championship(g["name"].lower())),
+                             [[e["day"], sorted((round(v, 2) for v in e["vals"]), reverse=not lower)] for e in editions]])
+        for sex in doc:
+            doc[sex].sort(key=lambda x: -sum(len(e[1]) for e in x[3]))
+            n_series += len(doc[sex])
+        doc["v"] = [[v] + (gaz.find(v) or []) for v in venues.items]
+        dump(out / "plan" / f"{d}.json", doc)
+        written.append(d)
+
+    cur, groups = None, {}
+    for d, sex, meeting, loc, day, value in con.execute(q, (since,)):
+        if d != cur:
+            flush(cur, groups)
+            cur, groups = d, {}
+        if is_international(meeting):
+            continue  # championships with entry standards are objectives, not races to enter
+        try:
+            Date.fromisoformat(day)
+        except ValueError:
+            continue
+        g = groups.setdefault((sex, series_key(meeting), s(loc).strip()), {"name": "", "latest": "", "days": defaultdict(list)})
+        if day >= g["latest"]:
+            g["latest"], g["name"] = day, re.sub(r"\s*\((WRC|WCR)\)", "", s(meeting)).strip()
+        g["days"][day].append(value)
+    flush(cur, groups)
+    missed = sorted(gaz.missed.items(), key=lambda x: -x[1])
+    print(f"planner: {len(written)} disciplines, {n_series:,} meeting series since {since}"
+          + (f", venues without coordinates: {', '.join(v for v, _ in missed[:40])}"
+             + (f" and {len(missed) - 40} more" if len(missed) > 40 else "") if missed and gaz.idx is not None else ""))
+    dump(out / "planner.json", {k: v for k, v in cfg.items() if k in ("homes", "championships", "omio")})
+    return {"disc": written, "from": since, "to": int(last)}
+
+
 # ---------- static HTML page per athlete (for search engines and link previews) ----------
 PAGE = """<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{name} ({by}) – {title}</title><meta name="description" content="{desc}">{canonical}
@@ -454,7 +599,7 @@ def build(a):
     max_by = datetime.now().year - a.min_age
     print(f"{n_ath:,} athletes to publish ({minors:,} under {a.min_age} left out, {gone} removed on request)")
 
-    for sub in ("a", "idx", "lists", "p"):
+    for sub in ("a", "idx", "lists", "p"):  # plan/ is rebuilt in planner()
         shutil.rmtree(out / sub, ignore_errors=True)
         (out / sub).mkdir(parents=True, exist_ok=True)
     for f in out.glob("sitemap*.xml"):
@@ -567,13 +712,17 @@ def build(a):
     for y in years:
         dump(out / "lists" / f"{y}.json", lists[y])
 
+    pf = Path(a.planner) if a.planner else None
+    pcfg = json.loads(pf.read_text(encoding="utf-8")) if pf and pf.exists() else None
+    plan = planner(con, disc, out, pcfg, Gazetteer(pcfg.get("venues"))) if pcfg else None
+
     first_year, last_result = con.execute("SELECT MIN(season), MAX(date) FROM r").fetchone()
     dump(out / "meta.json", {
         "title": a.title, "contact": a.contact, "min_age": a.min_age, "list_n": a.list_n, "generated": updated,
         "last_result": s(last_result), "first_year": first_year, "years": years, "athletes": n_ath,
         "results": n_res, "full_results": "allresults" in have, "disc": disc,
         "cadres": {c["code"]: c["name"] for c in cadres.lists}, "limit_name": (cadres.data.get("limits") or {}).get("name"),
-        "limit_year": cadres.year})
+        "limit_year": cadres.year, "plan": plan})
 
     # Static files, search engines, custom domain.
     for f in (HERE / "web").rglob("*"):
@@ -628,6 +777,7 @@ def main():
                    help="write a plain HTML page (for Google and link previews) for athletes with a result in the last N seasons")
     p.add_argument("--salt", default=".site_salt")
     p.add_argument("--cadres", default=str(HERE / "cadres.json"), help="official cadre lists and limits")
+    p.add_argument("--planner", default=str(HERE / "planner.json"), help="season planner: championships, standards, departure cities")
     sys.exit(build(p.parse_args()))
 
 

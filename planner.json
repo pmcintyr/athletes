@@ -1,0 +1,923 @@
+{
+ "_about": "Season planner (#/plan). Edit by hand, like cadres.json: championships an athlete can pick as objectives, their entry standards, and the cities offered as departure points. Dates and standards are copied from the sources given on each entry: check them against the official documents when they change. 'labels' are the Alabus discipline names (as in cadres.json); a standard whose label is not in the data is still shown in the table. 'venues' gives coordinates for places the automatic lookup (geonamescache) misses: the build log lists them under 'venues without coordinates'. 'omio': city ids come from Omio's Deep Link Creator file (affiliate programme); with both ids known the ticket link opens a prefilled search, and 'params' is added to every Omio link (affiliate marker).",
+ "seasons": 3,
+ "homes": [
+  [
+   "Lausanne",
+   46.516,
+   6.633
+  ],
+  [
+   "Genève",
+   46.202,
+   6.146
+  ],
+  [
+   "Bern",
+   46.948,
+   7.447
+  ],
+  [
+   "Zürich",
+   47.367,
+   8.55
+  ],
+  [
+   "Basel",
+   47.558,
+   7.573
+  ],
+  [
+   "Fribourg",
+   46.802,
+   7.151
+  ],
+  [
+   "Neuchâtel",
+   46.992,
+   6.931
+  ],
+  [
+   "Sion",
+   46.227,
+   7.356
+  ],
+  [
+   "Biel/Bienne",
+   47.137,
+   7.246
+  ],
+  [
+   "Luzern",
+   47.05,
+   8.306
+  ],
+  [
+   "St. Gallen",
+   47.424,
+   9.375
+  ],
+  [
+   "Lugano",
+   46.01,
+   8.96
+  ],
+  [
+   "Winterthur",
+   47.506,
+   8.724
+  ],
+  [
+   "Aarau",
+   47.393,
+   8.044
+  ],
+  [
+   "Yverdon-les-Bains",
+   46.779,
+   6.641
+  ],
+  [
+   "Bulle",
+   46.618,
+   7.057
+  ],
+  [
+   "Nyon",
+   46.383,
+   6.24
+  ],
+  [
+   "Thun",
+   46.751,
+   7.622
+  ],
+  [
+   "Chur",
+   46.85,
+   9.533
+  ],
+  [
+   "Delémont",
+   47.365,
+   7.345
+  ]
+ ],
+ "championships": [
+  {
+   "id": "sm-halle-2027",
+   "name": "Championnats suisses en salle",
+   "start": "2027-02-20",
+   "end": "2027-02-21",
+   "place": "St. Gallen",
+   "lat": 47.424,
+   "lon": 9.375,
+   "indoor": 1,
+   "default": 1,
+   "source": "https://www.swiss-athletics.ch/wettkaempfe/veranstaltungen/meisterschaften/"
+  },
+  {
+   "id": "eich-2027",
+   "name": "Championnats d'Europe en salle",
+   "start": "2027-03-04",
+   "end": "2027-03-07",
+   "place": "Valence (ESP)",
+   "lat": 39.474,
+   "lon": -0.38,
+   "indoor": 1,
+   "source": "https://www.visitvalencia.com/en/events-valencia/european-athletics-championships-2027-valencia",
+   "standards": {
+    "window": [
+     "2026-02-22",
+     "2027-02-21"
+    ],
+    "source": "https://lengvoji.lt/wp-content/uploads/2026/04/norm2027EIC.pdf",
+    "note": "Minima de European Athletics. Sans minima, la qualification passe par les listes de la saison en salle (1.11.2026 au 21.2.2027). Épreuves combinées : période dès le 22.8.2025.",
+    "events": [
+     {
+      "name": "60 m",
+      "M": "6.58",
+      "W": "7.17",
+      "labels": {
+       "M": [
+        "60 m"
+       ],
+       "W": [
+        "60 m"
+       ]
+      },
+      "out": [
+       "100 m",
+       "10.05",
+       "11.05"
+      ]
+     },
+     {
+      "name": "400 m",
+      "M": "45.90",
+      "W": "51.70",
+      "labels": {
+       "M": [
+        "400 m"
+       ],
+       "W": [
+        "400 m"
+       ]
+      },
+      "out": [
+       "400 m",
+       "44.75",
+       "50.50"
+      ]
+     },
+     {
+      "name": "800 m",
+      "M": "1:45.60",
+      "W": "2:00.40",
+      "labels": {
+       "M": [
+        "800 m"
+       ],
+       "W": [
+        "800 m"
+       ]
+      },
+      "out": [
+       "800 m",
+       "1:43.00",
+       "1:58.00"
+      ]
+     },
+     {
+      "name": "1500 m",
+      "M": "3:35.50",
+      "W": "4:05.50",
+      "labels": {
+       "M": [
+        "1500 m"
+       ],
+       "W": [
+        "1500 m"
+       ]
+      },
+      "out": [
+       "1500 m",
+       "3:31.00",
+       "4:00.00"
+      ]
+     },
+     {
+      "name": "3000 m",
+      "M": "7:40.00",
+      "W": "8:46.00",
+      "labels": {
+       "M": [
+        "3000 m"
+       ],
+       "W": [
+        "3000 m"
+       ]
+      },
+      "out": [
+       "3000 m",
+       "7:34.00",
+       "8:37.00"
+      ]
+     },
+     {
+      "name": "60 m haies",
+      "M": "7.61",
+      "W": "7.95",
+      "labels": {
+       "M": [
+        "60 mH 106.7"
+       ],
+       "W": [
+        "60 mH 83.8"
+       ]
+      },
+      "out": [
+       "110 m haies / 100 m haies",
+       "13.25",
+       "12.70"
+      ]
+     },
+     {
+      "name": "Hauteur",
+      "M": "2.29",
+      "W": "1.97",
+      "labels": {
+       "M": [
+        "Hoch"
+       ],
+       "W": [
+        "Hoch"
+       ]
+      }
+     },
+     {
+      "name": "Perche",
+      "M": "5.90",
+      "W": "4.73",
+      "labels": {
+       "M": [
+        "Stab"
+       ],
+       "W": [
+        "Stab"
+       ]
+      }
+     },
+     {
+      "name": "Longueur",
+      "M": "8.17",
+      "W": "6.83",
+      "labels": {
+       "M": [
+        "Weit"
+       ],
+       "W": [
+        "Weit"
+       ]
+      }
+     },
+     {
+      "name": "Triple saut",
+      "M": "17.00",
+      "W": "14.35",
+      "labels": {
+       "M": [
+        "Drei"
+       ],
+       "W": [
+        "Drei"
+       ]
+      }
+     },
+     {
+      "name": "Poids",
+      "M": "21.20",
+      "W": "18.90",
+      "labels": {
+       "M": [
+        "Kugel 7.26"
+       ],
+       "W": [
+        "Kugel 4.00"
+       ]
+      }
+     },
+     {
+      "name": "Heptathlon / pentathlon",
+      "M": "6250",
+      "W": "4600",
+      "labels": {
+       "M": [],
+       "W": []
+      },
+      "out": [
+       "Décathlon / heptathlon",
+       "8550",
+       "6600"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "eu23-2027",
+   "name": "Championnats d'Europe U23",
+   "start": "2027-07-22",
+   "end": "2027-07-25",
+   "place": "Bydgoszcz (POL)",
+   "lat": 53.123,
+   "lon": 18.008,
+   "indoor": 0,
+   "source": "https://lengvoji.lt/wp-content/uploads/2026/04/norm2027ECU23.pdf",
+   "standards": {
+    "window": [
+     "2026-01-01",
+     "2027-07-11"
+    ],
+    "source": "https://lengvoji.lt/wp-content/uploads/2026/04/norm2027ECU23.pdf",
+    "note": "Minima de European Athletics, état mars 2026. Réservé aux athlètes de moins de 23 ans.",
+    "events": [
+     {
+      "name": "100 m",
+      "M": "10.47",
+      "W": "11.65",
+      "labels": {
+       "M": [
+        "100 m"
+       ],
+       "W": [
+        "100 m"
+       ]
+      }
+     },
+     {
+      "name": "200 m",
+      "M": "21.15",
+      "W": "23.85",
+      "labels": {
+       "M": [
+        "200 m"
+       ],
+       "W": [
+        "200 m"
+       ]
+      }
+     },
+     {
+      "name": "400 m",
+      "M": "46.90",
+      "W": "54.50",
+      "labels": {
+       "M": [
+        "400 m"
+       ],
+       "W": [
+        "400 m"
+       ]
+      }
+     },
+     {
+      "name": "800 m",
+      "M": "1:47.20",
+      "W": "2:05.00",
+      "labels": {
+       "M": [
+        "800 m"
+       ],
+       "W": [
+        "800 m"
+       ]
+      }
+     },
+     {
+      "name": "1500 m",
+      "M": "3:40.50",
+      "W": "4:18.00",
+      "labels": {
+       "M": [
+        "1500 m"
+       ],
+       "W": [
+        "1500 m"
+       ]
+      }
+     },
+     {
+      "name": "5000 m",
+      "M": "13:58.00",
+      "W": "16:30.00",
+      "labels": {
+       "M": [
+        "5000 m"
+       ],
+       "W": [
+        "5000 m"
+       ]
+      }
+     },
+     {
+      "name": "10 000 m",
+      "M": "29:40.00",
+      "W": "35:00.00",
+      "labels": {
+       "M": [
+        "10 000 m"
+       ],
+       "W": [
+        "10 000 m"
+       ]
+      }
+     },
+     {
+      "name": "110 m haies / 100 m haies",
+      "M": "14.20",
+      "W": "13.50",
+      "labels": {
+       "M": [
+        "110 mH 106.7"
+       ],
+       "W": [
+        "100 mH 83.8"
+       ]
+      }
+     },
+     {
+      "name": "400 m haies",
+      "M": "51.70",
+      "W": "58.60",
+      "labels": {
+       "M": [
+        "400 mH 91.4"
+       ],
+       "W": [
+        "400 mH 76.2"
+       ]
+      }
+     },
+     {
+      "name": "3000 m steeple",
+      "M": "8:52.50",
+      "W": "10:20.00",
+      "labels": {
+       "M": [
+        "3000 m Steeple"
+       ],
+       "W": [
+        "3000 m Steeple"
+       ]
+      }
+     },
+     {
+      "name": "Hauteur",
+      "M": "2.12",
+      "W": "1.81",
+      "labels": {
+       "M": [
+        "Hoch"
+       ],
+       "W": [
+        "Hoch"
+       ]
+      }
+     },
+     {
+      "name": "Perche",
+      "M": "5.30",
+      "W": "4.10",
+      "labels": {
+       "M": [
+        "Stab"
+       ],
+       "W": [
+        "Stab"
+       ]
+      }
+     },
+     {
+      "name": "Longueur",
+      "M": "7.65",
+      "W": "6.30",
+      "labels": {
+       "M": [
+        "Weit"
+       ],
+       "W": [
+        "Weit"
+       ]
+      }
+     },
+     {
+      "name": "Triple saut",
+      "M": "15.50",
+      "W": "13.10",
+      "labels": {
+       "M": [
+        "Drei"
+       ],
+       "W": [
+        "Drei"
+       ]
+      }
+     },
+     {
+      "name": "Poids",
+      "M": "17.30",
+      "W": "14.90",
+      "labels": {
+       "M": [
+        "Kugel 7.26"
+       ],
+       "W": [
+        "Kugel 4.00"
+       ]
+      }
+     },
+     {
+      "name": "Disque",
+      "M": "54.00",
+      "W": "50.50",
+      "labels": {
+       "M": [
+        "Diskus 2.00"
+       ],
+       "W": [
+        "Diskus 1.00"
+       ]
+      }
+     },
+     {
+      "name": "Marteau",
+      "M": "65.00",
+      "W": "59.00",
+      "labels": {
+       "M": [
+        "Hammer 7.26"
+       ],
+       "W": [
+        "Hammer 4.00"
+       ]
+      }
+     },
+     {
+      "name": "Javelot",
+      "M": "71.00",
+      "W": "50.40",
+      "labels": {
+       "M": [
+        "Speer 800"
+       ],
+       "W": [
+        "Speer 600"
+       ]
+      }
+     },
+     {
+      "name": "Décathlon / heptathlon",
+      "M": "7580",
+      "W": "5580",
+      "labels": {
+       "M": [
+        "Zehnkampf M"
+       ],
+       "W": [
+        "Siebenkampf"
+       ]
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "sm-2027",
+   "name": "Championnats suisses",
+   "start": "2027-07-31",
+   "end": "2027-08-01",
+   "place": "Lausanne",
+   "lat": 46.516,
+   "lon": 6.633,
+   "indoor": 0,
+   "default": 1,
+   "source": "https://www.swiss-athletics.ch/wettkaempfe/veranstaltungen/meisterschaften/"
+  },
+  {
+   "id": "sm-u23-2027",
+   "name": "Championnats suisses U20/U23",
+   "start": "2027-09-04",
+   "end": "2027-09-05",
+   "place": "Frauenfeld",
+   "lat": 47.558,
+   "lon": 8.899,
+   "indoor": 0,
+   "source": "https://www.swiss-athletics.ch/wettkaempfe/veranstaltungen/meisterschaften/"
+  },
+  {
+   "id": "wch-2027",
+   "name": "Championnats du monde",
+   "start": "2027-09-11",
+   "end": "2027-09-19",
+   "place": "Pékin (CHN)",
+   "lat": 39.907,
+   "lon": 116.397,
+   "indoor": 0,
+   "source": "https://citiusmag.com/articles/world-athletics-championships-2027-beijing-qualifying-system-explained",
+   "standards": {
+    "window": [
+     "2026-08-23",
+     "2027-08-22"
+    ],
+    "source": "https://www.letsrun.com/news/2026/05/world-athletics-announces-super-hard-qualifying-standards-for-2027-world-championships/",
+    "note": "Minima de World Athletics, repris de la presse spécialisée : à vérifier dans le document officiel. Sans minima, la qualification passe par le classement mondial. Marathon : période du 3.11.2025 au 2.5.2027 ; 10 000 m : dès le 23.2.2026.",
+    "events": [
+     {
+      "name": "100 m",
+      "M": "9.95",
+      "W": "10.96",
+      "labels": {
+       "M": [
+        "100 m"
+       ],
+       "W": [
+        "100 m"
+       ]
+      }
+     },
+     {
+      "name": "200 m",
+      "M": "20.07",
+      "W": "22.45",
+      "labels": {
+       "M": [
+        "200 m"
+       ],
+       "W": [
+        "200 m"
+       ]
+      }
+     },
+     {
+      "name": "400 m",
+      "M": "44.45",
+      "W": "50.00",
+      "labels": {
+       "M": [
+        "400 m"
+       ],
+       "W": [
+        "400 m"
+       ]
+      }
+     },
+     {
+      "name": "800 m",
+      "M": "1:43.00",
+      "W": "1:57.50",
+      "labels": {
+       "M": [
+        "800 m"
+       ],
+       "W": [
+        "800 m"
+       ]
+      }
+     },
+     {
+      "name": "1500 m",
+      "M": "3:30.00",
+      "W": "3:58.00",
+      "labels": {
+       "M": [
+        "1500 m"
+       ],
+       "W": [
+        "1500 m"
+       ]
+      }
+     },
+     {
+      "name": "5000 m",
+      "M": "12:50.00",
+      "W": "14:36.00",
+      "labels": {
+       "M": [
+        "5000 m"
+       ],
+       "W": [
+        "5000 m"
+       ]
+      }
+     },
+     {
+      "name": "10 000 m",
+      "M": "26:48.00",
+      "W": "30:40.00",
+      "labels": {
+       "M": [
+        "10 000 m"
+       ],
+       "W": [
+        "10 000 m"
+       ]
+      }
+     },
+     {
+      "name": "Marathon",
+      "M": "2:06:00",
+      "W": "2:23:20",
+      "labels": {
+       "M": [
+        "Marathon"
+       ],
+       "W": [
+        "Marathon"
+       ]
+      }
+     },
+     {
+      "name": "3000 m steeple",
+      "M": "8:08.00",
+      "W": "9:06.50",
+      "labels": {
+       "M": [
+        "3000 m Steeple"
+       ],
+       "W": [
+        "3000 m Steeple"
+       ]
+      }
+     },
+     {
+      "name": "110 m haies / 100 m haies",
+      "M": "13.18",
+      "W": "12.60",
+      "labels": {
+       "M": [
+        "110 mH 106.7"
+       ],
+       "W": [
+        "100 mH 83.8"
+       ]
+      }
+     },
+     {
+      "name": "400 m haies",
+      "M": "48.00",
+      "W": "54.00",
+      "labels": {
+       "M": [
+        "400 mH 91.4"
+       ],
+       "W": [
+        "400 mH 76.2"
+       ]
+      }
+     },
+     {
+      "name": "Hauteur",
+      "M": "2.30",
+      "W": "1.96",
+      "labels": {
+       "M": [
+        "Hoch"
+       ],
+       "W": [
+        "Hoch"
+       ]
+      }
+     },
+     {
+      "name": "Perche",
+      "M": "5.90",
+      "W": "4.75",
+      "labels": {
+       "M": [
+        "Stab"
+       ],
+       "W": [
+        "Stab"
+       ]
+      }
+     },
+     {
+      "name": "Longueur",
+      "M": "8.25",
+      "W": "6.86",
+      "labels": {
+       "M": [
+        "Weit"
+       ],
+       "W": [
+        "Weit"
+       ]
+      }
+     },
+     {
+      "name": "Triple saut",
+      "M": "17.35",
+      "W": "14.40",
+      "labels": {
+       "M": [
+        "Drei"
+       ],
+       "W": [
+        "Drei"
+       ]
+      }
+     },
+     {
+      "name": "Poids",
+      "M": "21.50",
+      "W": "19.30",
+      "labels": {
+       "M": [
+        "Kugel 7.26"
+       ],
+       "W": [
+        "Kugel 4.00"
+       ]
+      }
+     },
+     {
+      "name": "Disque",
+      "M": "67.20",
+      "W": "64.50",
+      "labels": {
+       "M": [
+        "Diskus 2.00"
+       ],
+       "W": [
+        "Diskus 1.00"
+       ]
+      }
+     },
+     {
+      "name": "Marteau",
+      "M": "78.30",
+      "W": "74.00",
+      "labels": {
+       "M": [
+        "Hammer 7.26"
+       ],
+       "W": [
+        "Hammer 4.00"
+       ]
+      }
+     },
+     {
+      "name": "Javelot",
+      "M": "85.50",
+      "W": "63.40",
+      "labels": {
+       "M": [
+        "Speer 800"
+       ],
+       "W": [
+        "Speer 600"
+       ]
+      }
+     },
+     {
+      "name": "Décathlon / heptathlon",
+      "M": "8620",
+      "W": "6550",
+      "labels": {
+       "M": [
+        "Zehnkampf M"
+       ],
+       "W": [
+        "Siebenkampf"
+       ]
+      }
+     }
+    ]
+   }
+  }
+ ],
+ "venues": {
+  "Heusden-Zolder (BEL)": [
+   51.025,
+   5.31
+  ],
+  "Kessel-Lo (BEL)": [
+   50.885,
+   4.737
+  ],
+  "Macolin": [
+   47.139,
+   7.214
+  ],
+  "Magglingen": [
+   47.139,
+   7.214
+  ]
+ },
+ "omio": {
+  "site": "https://www.omio.fr/",
+  "params": "",
+  "ids": {}
+ }
+}
