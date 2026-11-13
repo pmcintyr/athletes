@@ -412,13 +412,20 @@ function projectDate(iso, year) {
   return toISO(t);
 }
 
-/* Door-to-door estimate from the straight-line distance: no timetable, an order of magnitude to sort and filter with. */
+/* Door-to-door estimates from the straight-line distance: no timetable and no fares, orders of magnitude to sort and
+   filter with. Races in Switzerland: train. Races abroad: train and, from 350 km, plane; the faster one counts. */
 function travel(home, v) {
   if (!home || v.length < 3) return null;
   const rad = x => x * Math.PI / 180, [, la1, lo1] = home, [, la2, lo2] = v;
   const a = Math.sin(rad(la2 - la1) / 2) ** 2 + Math.cos(rad(la1)) * Math.cos(rad(la2)) * Math.sin(rad(lo2 - lo1) / 2) ** 2;
-  const km = 6371 * 2 * Math.asin(Math.sqrt(a)) * 1.25;
-  return km < 8 ? { km, h: 0.5, chf: 0 } : { km, h: 1 + km / 95, chf: Math.max(5, Math.round(km * 0.4 / 5) * 5) };
+  const air = 6371 * 2 * Math.asin(Math.sqrt(a)), km = air * 1.25, r5 = x => Math.max(5, Math.round(x / 5) * 5);
+  if (km < 8) return { km, h: 0.5, chf: 0, modes: [] };
+  const abroad = v[3] && v[3] !== "SUI";
+  const modes = [{ k: "train", name: "Train", h: 1 + km / 95, chf: r5(km * 0.4) }];  // 1 h to and from stations, about 20 ct/km
+  // plane: about 4 h around the flight (airport, check-in, transfer), 750 km/h in the air, 120 CHF + 12 ct/km return
+  if (abroad && air >= 350) modes.push({ k: "plane", name: "Avion", h: 4 + air / 750, chf: r5(120 + air * 0.12) });
+  const best = modes.reduce((x, y) => (y.h < x.h ? y : x));
+  return { km, h: best.h, chf: best.chf, mode: best.k, modes };
 }
 
 function weekendFit(iso, t) {
@@ -564,8 +571,9 @@ async function planPage(athId) {
       <p class="race-meta">${esc(place)} · ${c.real ? "date de l'édition " + c.date.slice(0, 4) : `date habituelle, à confirmer (édition ${c.last.slice(0, 4)} : ${fmtDay(c.last)})`}</p>
       <p class="race-meta">Édition ${c.last.slice(0, 4)} : ${c.n} résultat${c.n > 1 ? "s" : ""}, meilleur <strong class="num">${fmtVal(c.best, d)}</strong>${c.n > 2 ? `, médiane <span class="num">${fmtVal(c.med, d)}</span>` : ""}.
         ${lv !== null || tg !== null ? `${c.zone ? `<strong>${(Math.round(c.zone * 10) / 10).toLocaleString("fr-CH")}</strong> par édition dans votre zone` : "Personne dans votre zone"}${tg !== null ? `, ${c.hit ? (Math.round(c.hit * 10) / 10).toLocaleString("fr-CH") : "aucun"} à ${esc(st.target)} ou mieux` : ""} <span class="muted">(${c.eds} édition${c.eds > 1 ? "s" : ""})</span>.` : ""}</p>
-      <p class="race-meta"><span class="fit ${c.fit.k}">${esc(c.fit.txt)}</span>${c.t ? (c.t.chf ? ` <strong class="num">${fmtKm(c.t.km)}</strong> de ${esc(home[0])} · environ ${fmtHours(c.t.h)} de porte à porte · environ <strong class="num">${c.t.chf} CHF</strong> aller-retour` : ` sur place, à ${esc(home[0])}`) : ""}</p>
-      <p class="race-act"><button type="button" class="link" data-pick="${esc(c.key)}" data-obj="${esc(obj.id)}" data-km="${c.t && c.t.chf ? Math.round(c.t.km) : ""}" data-chf="${c.t ? c.t.chf : ""}">${picked(c.key) ? "Retirer de ma saison" : "Ajouter à ma saison"}</button>
+      <p class="race-meta"><span class="fit ${c.fit.k}">${esc(c.fit.txt)}</span>${c.t ? (c.t.chf ? ` <strong class="num">${fmtKm(c.t.km)}</strong> de ${esc(home[0])}` : ` sur place, à ${esc(home[0])}`) : ""}</p>
+      ${c.t && c.t.modes.length ? `<p class="race-meta modes">${c.t.modes.map(m => `<span${m.k === c.t.mode && c.t.modes.length > 1 ? ' class="best"' : ""}>${m.name} : environ ${fmtHours(m.h)} de porte à porte, environ <strong class="num">${m.chf} CHF</strong> aller-retour</span>`).join("")}</p>` : ""}
+      <p class="race-act"><button type="button" class="link" data-pick="${esc(c.key)}" data-obj="${esc(obj.id)}" data-km="${c.t && c.t.chf ? Math.round(c.t.km) : ""}" data-chf="${c.t ? c.t.chf : ""}" data-mode="${c.t && c.t.mode ? c.t.mode : ""}">${picked(c.key) ? "Retirer de ma saison" : "Ajouter à ma saison"}</button>
         ${maps ? `<a href="${maps}" target="_blank" rel="noopener">Itinéraire</a>` : ""}${omio ? `<a href="${esc(omio)}" target="_blank" rel="noopener">Billets sur Omio</a>` : ""}</p>
     </li>`;
   }
@@ -624,7 +632,7 @@ async function planPage(athId) {
       ${objs.length ? `<h2>Ma saison</h2>${timeline(objs, st.picks)}
         <ul class="season">${season.map(x => x.goal
           ? `<li class="goal"><span class="num">${fmtSpan(x.goal.start, x.goal.end)}</span><span><strong>${esc(x.goal.name)}</strong>${x.goal.place ? ` <span class="muted">· ${esc(x.goal.place)}</span>` : ""}</span></li>`
-          : `<li><span class="num">${fmtDay(x.pick.date)}</span><span>${esc(x.pick.name)} <span class="muted">· ${esc(x.pick.venue)}${x.pick.real ? "" : ", date à confirmer"}${x.pick.km ? ` · ${fmtKm(x.pick.km)} de ${esc(x.pick.home)}, environ ${x.pick.chf} CHF aller-retour` : ""}</span> <button type="button" class="link" data-pick="${esc(x.pick.key)}">retirer</button></span></li>`).join("")}</ul>
+          : `<li><span class="num">${fmtDay(x.pick.date)}</span><span>${esc(x.pick.name)} <span class="muted">· ${esc(x.pick.venue)}${x.pick.real ? "" : ", date à confirmer"}${x.pick.km ? ` · ${fmtKm(x.pick.km)} de ${esc(x.pick.home)}, environ ${x.pick.chf} CHF aller-retour${x.pick.mode === "plane" ? " en avion" : x.pick.mode === "train" ? " en train" : ""}` : ""}</span> <button type="button" class="link" data-pick="${esc(x.pick.key)}">retirer</button></span></li>`).join("")}</ul>
         ${st.picks.some(p => p.chf) ? `<p class="note">Déplacements des courses choisies : environ <strong class="num">${st.picks.reduce((n, p) => n + (p.chf || 0), 0).toLocaleString("fr-CH")} CHF</strong> aller-retour au total, ${fmtKm(st.picks.reduce((n, p) => n + (p.km || 0), 0) * 2)} parcourus (estimation).</p>` : ""}
         ${st.picks.length ? "" : `<p class="note">Ajoutez des courses depuis les propositions ci-dessous : elles apparaissent ici, dans l'ordre de la saison.</p>`}` : `<p class="empty">Cochez au moins un objectif pour voir les courses proposées.</p>`}
       ${objs.map(o => {
@@ -650,7 +658,7 @@ async function planPage(athId) {
           <div class="tbl-wrap"><table><thead><tr><th>Épreuve</th><th class="r">Hommes</th><th class="r">Femmes</th>${c.standards.events.some(e => e.out) ? `<th class="hide-s">Équivalent en plein air</th>` : ""}</tr></thead>
           <tbody>${c.standards.events.map(e => `<tr><td>${esc(e.name)}</td><td class="r num">${esc(e.M)}</td><td class="r num">${esc(e.W)}</td>${c.standards.events.some(x => x.out) ? `<td class="hide-s muted">${e.out ? `${esc(e.out[0])} : ${esc(e.out[1])} / ${esc(e.out[2])}` : ""}</td>` : ""}</tr>`).join("")}</tbody></table></div></details>`).join("")}
       </section>` : ""}
-      <p class="note">Les propositions viennent des résultats des saisons ${META.plan.from} à ${META.plan.to} enregistrés par Swiss Athletics : ce sont les compétitions où des athlètes licenciés en Suisse ont couru, en Suisse comme à l'étranger. « Votre zone » compte les résultats entre votre niveau et votre objectif (à 1,5 % près). Les dates ${META.plan.to + 1} sont reprises du jour habituel de chaque compétition : vérifiez-les auprès de l'organisateur avant de réserver. Distances, durées et prix sont des ordres de grandeur : la distance est celle à vol d'oiseau majorée de 25 %, le prix compte environ 20 centimes par kilomètre. Ce ne sont ni des horaires ni des tarifs.</p>`;
+      <p class="note">Les propositions viennent des résultats des saisons ${META.plan.from} à ${META.plan.to} enregistrés par Swiss Athletics : ce sont les compétitions où des athlètes licenciés en Suisse ont couru, en Suisse comme à l'étranger. « Votre zone » compte les résultats entre votre niveau et votre objectif (à 1,5 % près). Les dates ${META.plan.to + 1} sont reprises du jour habituel de chaque compétition : vérifiez-les auprès de l'organisateur avant de réserver. Distances, durées et prix sont des ordres de grandeur calculés d'après la distance : ni des horaires, ni des tarifs. En Suisse, le trajet est compté en train ; à l'étranger, en train et, dès 350 km, en avion, et le plus rapide des deux sert au filtre « week-end ». Train : environ 20 centimes par kilomètre. Avion : environ 4 h autour du vol, 120 CHF plus 12 centimes par kilomètre.</p>`;
   }
 
   form.addEventListener("input", e => {
@@ -680,7 +688,7 @@ async function planPage(athId) {
     else if (t.dataset.pick) {
       const key = t.dataset.pick, [name, venue, date] = key.split("|");
       if (picked(key)) st.picks = st.picks.filter(p => p.key !== key);
-      else st.picks.push({ key, name, venue, date, obj: t.dataset.obj, real: +date.slice(0, 4) <= META.plan.to, km: +t.dataset.km || 0, chf: +t.dataset.chf || 0, home: st.home });
+      else st.picks.push({ key, name, venue, date, obj: t.dataset.obj, real: +date.slice(0, 4) <= META.plan.to, km: +t.dataset.km || 0, chf: +t.dataset.chf || 0, mode: t.dataset.mode || "", home: st.home });
       draw();
     }
   });

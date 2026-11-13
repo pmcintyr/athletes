@@ -194,6 +194,9 @@ td.dt { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .race-date { font-weight: 600; white-space: nowrap; }
 .race-meta { margin: 3px 0 0; font-size: 14px; color: var(--muted); }
 .race-meta strong { color: var(--ink); }
+.modes { display: flex; flex-wrap: wrap; gap: 2px 22px; }
+.modes .best { color: var(--ink); }
+.modes .best::after { content: " · le plus rapide"; color: var(--green); font-weight: 600; }
 .race-act { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; }
 .fit { display: inline-block; font-weight: 600; font-size: 13px; padding: 1px 8px; border-radius: 999px; margin-right: 6px; }
 .fit.ok { background: var(--green-bg); color: var(--green); } .fit.mid, .fit.no { background: var(--amber-bg); color: var(--amber); }

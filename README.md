@@ -72,8 +72,9 @@ the page proposes races in three windows: 7 to 3 weeks before, 3 weeks to 6 days
   Swiss-licensed athletes abroad; a meeting no Swiss athlete entered is unknown to the planner.
 * Next year's dates are the usual weekday of the last edition, shown as "to be confirmed": there is no
   calendar feed yet.
-* Travel time and cost are estimates from the straight-line distance (no timetable), used to filter
-  "reachable in a weekend". The route link opens Google Maps; the Omio link opens a prefilled search only
+* Travel time and cost are estimates from the straight-line distance (no timetable, no fares), used to filter
+  "reachable in a weekend": train for races in Switzerland; train and, from 350 km, plane for races abroad,
+  the faster of the two counting for the filter. The formulas are in `travel()` in `web/app.js`. The route link opens Google Maps; the Omio link opens a prefilled search only
   once city ids from Omio's affiliate Deep Link Creator file are added under `omio.ids` in `planner.json`
   (`omio.params` takes the affiliate marker).
 * Choices are kept in the visitor's browser only.
