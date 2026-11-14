@@ -854,6 +854,101 @@ def geography(out, disc, active, cfg, gaz, club_geo, years, min_field=20):
     return {"years": list(years), "clubs": len(index)}
 
 
+# ---------- international meetings: the level needed at each Continental Tour meeting in Europe ----------
+WA_EVENTS = {"60 Metres": "60 m", "100 Metres": "100 m", "150 Metres": "150 m", "200 Metres": "200 m", "300 Metres": "300 m",
+             "400 Metres": "400 m", "600 Metres": "600 m", "800 Metres": "800 m", "1000 Metres": "1000 m", "1500 Metres": "1500 m",
+             "Mile": "1 Meile", "2000 Metres": "2000 m", "3000 Metres": "3000 m", "5000 Metres": "5000 m", "10,000 Metres": "10 000 m",
+             "3000 Metres Steeplechase": "3000 m Steeple", "2000 Metres Steeplechase": "2000 m Steeple",
+             "110 Metres Hurdles": {"M": "110 mH 106.7"}, "100 Metres Hurdles": {"W": "100 mH 83.8"},
+             "400 Metres Hurdles": {"M": "400 mH 91.4", "W": "400 mH 76.2"}, "High Jump": "Hoch", "Pole Vault": "Stab",
+             "Long Jump": "Weit", "Triple Jump": "Drei", "Shot Put": {"M": "Kugel 7.26", "W": "Kugel 4.00"},
+             "Discus Throw": {"M": "Diskus 2.00", "W": "Diskus 1.00"}, "Hammer Throw": {"M": "Hammer 7.26", "W": "Hammer 4.00"},
+             "Javelin Throw": {"M": "Speer 800", "W": "Speer 600"}}
+
+
+def wa_mark(text):
+    """'3:45.89' -> 225.89, '8.12' -> 8.12; None if it is not a mark."""
+    m = re.match(r"^(?:(\d+):)?(?:(\d+):)?(\d+(?:\.\d+)?)", str(text))
+    if not m:
+        return None
+    a, b, c = m.groups()
+    parts = [float(x) for x in (a, b) if x is not None]
+    v = float(c)
+    if len(parts) == 2:
+        return parts[0] * 3600 + parts[1] * 60 + v
+    if len(parts) == 1:
+        return parts[0] * 60 + v
+    return v
+
+
+def meetings(out, disc, data, info, gaz):
+    """meets.json (series of meetings: level, place, editions, next date) and meets/<sex><d>.json (marks per edition
+    of one event) from the data meets_data.py collected. An edition's field = its final, else all its races."""
+    shutil.rmtree(out / "meets", ignore_errors=True)
+    (out / "meets").mkdir(parents=True, exist_ok=True)
+    by_label = {(d[0], d[1]): i for i, d in enumerate(disc)}
+    today = datetime.now().strftime("%Y-%m-%d")
+    groups = defaultdict(list)
+    for mid, m in data.get("meets", {}).items():
+        if m.get("city"):
+            groups[(geo_norm(m["city"]), series_key(m["name"]))].append((mid, m))
+    # a meeting that changed its name: one-edition groups of the same town join a group held at the same time of year
+    keys = sorted(groups, key=lambda k: -len(groups[k]))
+    for k in keys:
+        if k not in groups or len(groups[k]) != 1:
+            continue
+        mid, m = groups[k][0]
+        doy = Date.fromisoformat(m["start"]).timetuple().tm_yday
+        for other in keys:
+            if other == k or other not in groups or other[0] != k[0]:
+                continue
+            years = {x[1]["start"][:4] for x in groups[other]}
+            near = any(abs(Date.fromisoformat(x[1]["start"]).timetuple().tm_yday - doy) <= 21 for x in groups[other])
+            if m["start"][:4] not in years and near:
+                groups[other].append((mid, m))
+                del groups[k]
+                break
+    series, marks, n_read, n_past = [], defaultdict(dict), 0, 0
+    info = {geo_norm(k): v for k, v in (info or {}).items() if not k.startswith("_")}
+    for (city, _), eds in sorted(groups.items(), key=lambda x: x[0]):
+        eds.sort(key=lambda x: x[1]["start"])
+        last = eds[-1][1]
+        past = [x for x in eds if x[1]["end"] < today]
+        upcoming = next((x[1] for x in eds if x[1]["start"] >= today), None)
+        n_past += len(past)
+        n_read += sum(1 for x in past if x[1].get("events"))
+        place = gaz.find(f"{last['city']} ({last['country']})") if last["country"] != "SUI" else gaz.find(last["city"])
+        si = len(series)
+        events = set()
+        for mid, m in past:
+            for key, rows in (m.get("events") or {}).items():
+                sex, name = key.split("|", 1)
+                label = WA_EVENTS.get(name)
+                label = label.get(sex) if isinstance(label, dict) else label
+                d = by_label.get((0, label)) if label else None
+                if d is None:
+                    continue
+                lower = disc[d][3] == 1
+                final = [r for r in rows if r[2] == "Final"] or rows
+                vals = sorted((v for v in (wa_mark(r[0]) for r in final) if v is not None), reverse=not lower)
+                if vals:
+                    marks[(sex, d)].setdefault(si, []).append([int(m["start"][:4]), [round(v, 2) for v in vals]])
+                    events.add(f"{sex}{d}")
+        extra = info.get(geo_norm(last["name"])) or info.get(f"{series_key(last['name'])} {city}".strip())
+        series.append({"n": re.sub(r"^\d+[.°ºª]?\s+|^\d+(st|nd|rd|th)\s+", "", last["name"]), "city": last["city"], "cc": last["country"],
+                       "g": place[:2] if place else None, "lv": last["level"], "cat": last["cat"],
+                       "eds": [[m["start"], m["end"], m["level"], mid, int(bool(m.get("events")))] for mid, m in past[-4:]],
+                       "next": [upcoming["start"], upcoming["end"]] if upcoming else None, "ev": sorted(events),
+                       "info": extra or None})
+    for (sex, d), rows in marks.items():
+        dump(out / "meets" / f"{sex}{d}.json", rows)
+    dump(out / "meets.json", {"updated": data.get("updated"), "series": series, "events": sorted(f"{sex}{d}" for sex, d in marks),
+                              "read": [n_read, n_past]})
+    print(f"meetings: {len(series)} series from {len(data.get('meets', {}))} meetings, results stored for {n_read} of {n_past} past editions, "
+          f"{len(marks)} events")
+    return {"series": len(series), "updated": data.get("updated")}
+
+
 # ---------- static HTML page per athlete (for search engines and link previews) ----------
 PAGE = """<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{name} ({by}) – {title}</title><meta name="description" content="{desc}">{canonical}
@@ -1073,6 +1168,9 @@ def build(a):
 
     plan = planner(con, disc, out, pcfg, gaz) if pcfg else None
     geo = geography(out, disc, active, gcfg, gaz, club_geo, ref_years) if gcfg else None
+    mf, mi = HERE / "meets.json", HERE / "meets_info.json"
+    meets = meetings(out, disc, json.loads(mf.read_text(encoding="utf-8")),
+                     json.loads(mi.read_text(encoding="utf-8")) if mi.exists() else {}, gaz) if mf.exists() else None
 
     first_year, last_result = con.execute("SELECT MIN(season), MAX(date) FROM r").fetchone()
     dump(out / "meta.json", {
@@ -1080,7 +1178,7 @@ def build(a):
         "last_result": s(last_result), "first_year": first_year, "years": years, "athletes": n_ath,
         "results": n_res, "full_results": "allresults" in have, "disc": disc,
         "cadres": {c["code"]: c["name"] for c in cadres.lists}, "limit_name": (cadres.data.get("limits") or {}).get("name"),
-        "limit_year": cadres.year, "plan": plan, "geo": geo})
+        "limit_year": cadres.year, "plan": plan, "geo": geo, "meets": meets})
 
     # Static files, search engines, custom domain.
     for f in (HERE / "web").rglob("*"):

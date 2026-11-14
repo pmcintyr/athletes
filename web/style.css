@@ -235,6 +235,14 @@ td.bar span { position: relative; }
 
 .lane .mk small.pts { color: var(--muted); }
 
+.races > li { min-width: 0; }
+.race-name .tag { white-space: nowrap; }
+.need { margin: 8px 0 4px; }
+.need table { font-size: 14px; }
+.need th, .need td { padding: 4px 10px; }
+.tag[class*="lv-"] { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+.tag.lv-gold { border-color: var(--amber); } .tag.lv-silver { border-color: var(--muted); }
+
 /* footer */
 .foot { border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; padding: 22px 0 36px; }
 .foot p { margin: 0 0 6px; max-width: 80ch; }

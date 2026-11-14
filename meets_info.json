@@ -1,0 +1,4 @@
+{
+ "_about": "How to enter each international meeting, filled in by hand: the key is the meeting's name as World Athletics writes it (the edition number in front can be left out). Fields, all optional: 'entry' (who to write to or where to apply), 'deadline' (free text or a date), 'url' (the meeting's own site). Shown on the page #/meetings.",
+ "_example": {"entry": "Demande par le manager ou la fédération à meeting@example.org", "deadline": "6 semaines avant le meeting", "url": "https://example.org"}
+}

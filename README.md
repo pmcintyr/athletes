@@ -60,6 +60,9 @@ the site from the stored data, without downloading anything.
 | `make_demo_db.py` | Fake database to preview the site without real data |
 | `planner.json` | Season planner: championships to pick as objectives, their entry standards, departure cities, venue coordinates the lookup misses, Omio link settings |
 | `geo.json` | The three regions and their cantons, canton names, corrections for clubs the automatic lookup places wrongly or not at all |
+| `clubs_data.py`, `clubs_swiss_athletics.json` | Member clubs of Swiss Athletics with town and canton, read weekly from the federation's club finder |
+| `meets_data.py`, `meets.json`, `meets_info.json` | Continental Tour meetings in Europe: calendar and marks of past editions; entry contacts filled by hand |
+| `probe/`, `probe.yml` | Development aid: prints the structure of a public page when a reader has to be adapted |
 | `cadres.json` | Official Swiss Athletics cadre lists (Swiss Starters, Swiss Starters Future) and Swiss Starters limits, shown on profiles and the Cadres page |
 
 ## Who it is for
@@ -118,6 +121,21 @@ the page proposes races in three windows: 7 to 3 weeks before, 3 weeks to 6 days
 * The departure point is any Swiss place and everything is recomputed when it changes; starting from a profile
   it is the town of the athlete's club.
 * Choices are kept in the visitor's browser only.
+
+## International meetings (`#/meetings`)
+
+The World Athletics Continental Tour meetings in Europe (Gold, Silver, Bronze, Challenger): for an event and a
+mark, each meeting shows the winner, 3rd, 8th and last classified of its last editions, where the mark would
+have placed, a tag (realistic, a stretch, too strong), the 2027 date when World Athletics has announced it, and
+the trip from the chosen town.
+
+* `meets_data.py` and the "International meetings" workflow read the public calendar of worldathletics.org
+  (4 pages a season) and the results page of each past edition (one page each, read once, 60 a night until
+  all are in). `meets.json` keeps meeting, date, place, level and the marks per event, no names.
+* "Realistic" compares the mark with the athlete four fifths down the last edition's result, because the very
+  last are often pacemakers. It says nothing about getting an entry: meetings pick their fields.
+* `meets_info.json` is for what no page lists: who to write to and the entry deadline of a meeting, by hand.
+* Not included yet: indoor meetings, meetings outside the Continental Tour, and ranking points per place.
 
 ## One-time setup (already done for pmcintyr/athletes)
 
