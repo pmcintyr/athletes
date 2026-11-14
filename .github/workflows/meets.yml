@@ -1,0 +1,44 @@
+# Reads the World Athletics Continental Tour calendar for Europe and the results of past editions, a few pages at a
+# time, and commits meets.json when it changed. The site shows the level needed at each meeting from it.
+name: International meetings
+
+on:
+  schedule:
+    - cron: "11 4 * * *"  # 05:11 in Switzerland (winter time)
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: "Results pages to read in this run"
+        default: "60"
+  push:
+    branches: [main]
+    paths: ["meets_data.py", ".github/workflows/meets.yml"]
+
+permissions:
+  contents: write  # commits meets.json
+
+concurrency:
+  group: meets-data
+  cancel-in-progress: false
+
+jobs:
+  meets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python meets_data.py --budget "${{ inputs.budget || '60' }}"
+      - name: Commit the data if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add meets.json
+          if ! git diff --cached --quiet; then
+            git commit -m "International meetings $(date -u +%F)"
+            git pull --rebase --quiet && git push
+          fi
