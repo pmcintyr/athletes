@@ -84,13 +84,14 @@ the site from the stored data, without downloading anything.
   `#/canton/VD` and `#/region/ouest` give the five best per event. Everything comes from public Alabus results and
   every page says so.
 
-A club's canton is the canton of its address in the list of member clubs of Swiss Athletics
+A club's canton has two automatic sources: the town in its name (`TV Länggasse Bern`, `Stade Genève`), looked up
+in the GeoNames list of Swiss places, and the canton of its address in the list of member clubs of Swiss Athletics
 (`clubs_swiss_athletics.json`, read once a week from the federation's club finder by `clubs_data.py` and the
-"Club list" workflow), or the one `geo.json` gives under `verified`, which wins. For a club in neither it is guessed
-from the town in its name (`TV Länggasse Bern`, `Stade Genève`): `build_site.py` looks the words up in the GeoNames
-list of Swiss places, helped by `geo.json` (`areas` for regional names like Fricktal, `clubs` where the name has no
-town). A guessed canton is shown with "à vérifier" on every page, and the build log lists the guesses so they can
-be checked and moved to `verified`. The regions follow the invitations of the regional championships (West 2023,
+"Club list" workflow). The address is sometimes the home of the club's contact person (the list puts TV Thalwil
+in Aargau), so neither source is trusted alone: the canton is shown as certain when both agree, or when
+`geo.json` gives it under `verified`; otherwise the page says "à vérifier" and the build log lists the case, to
+be settled by adding the club to `verified`. `geo.json` `clubs` and `areas` help the guess for names without a
+town (Fricktal, Oberwallis). The regions follow the invitations of the regional championships (West 2023,
 Ost 2024, Zentral 2016, linked in `geo.json`). Masters events are offered from age 30, as Swiss Masters Athletics
 does for stadium athletics. An athlete counts for the canton of the latest club. "Active" means a result in the
 last two seasons. Ranks are for the latest season that has enough results (outdoor and indoor decided separately).

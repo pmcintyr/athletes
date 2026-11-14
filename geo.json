@@ -1,5 +1,5 @@
 {
- "_about": "Clubs, cantons and regions. 'verified': club name exactly as in Alabus -> canton, from a checked list (club_canton.csv made with alabus_scraper.py, or a cantonal association's list of member clubs): only these are shown as certain. Every other club is placed automatically from the town in its name (GeoNames list of Swiss places, optional geonamescache package) and shown as 'to be verified'. 'clubs' helps that guess where the name has no town: club -> canton, [canton, town] or [canton, town, lat, lon]; it does not make a canton verified. 'areas' maps words found in club names (regions, valleys, adjectives) to a canton when no town is found. The build log lists the clubs it could not place. 'regions' are the three regions of the Swiss Athletics regional championships, as in the invitations given as sources.",
+ "_about": "Clubs, cantons and regions. A club's canton has two automatic sources: the town in its name (GeoNames list of Swiss places, optional geonamescache package) and the canton of its address in the federation's list of member clubs (clubs_swiss_athletics.json), which is sometimes the home of the contact person. When both agree the canton is shown as certain; when they differ, or only one exists, it is shown as 'to be verified' and the build log lists the case. 'verified': club name exactly as in Alabus -> canton, checked by hand (a checked list, or a plain fact such as Biel-Benken lying in BL): it settles the matter. 'clubs' helps the guess where the name has no town: club -> canton, [canton, town] or [canton, town, lat, lon]. 'areas' maps words found in club names (regions, valleys, adjectives) to a canton. 'regions' are the three regions of the Swiss Athletics regional championships, as in the invitations given as sources.",
  "regions": [
   {
    "id": "ouest",
@@ -140,7 +140,9 @@
   "TV Plaffeien": "FR",
   "Termen athletics": "VS",
   "US Yverdon": "VD",
-  "Versoix Athlétisme": "GE"
+  "Versoix Athlétisme": "GE",
+  "Sportclub Biel-Benken": "BL",
+  "TV Hausen a. A.": "ZH"
  },
  "clubs": {
   "LC Kirchberg": [

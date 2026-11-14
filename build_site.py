@@ -523,28 +523,43 @@ class Gazetteer:
 
     def club(self, club, cfg):
         """Where a club is -> [canton, town, lat, lon, verified] (town parts None if only the canton is known) or None.
-        The canton is certain (verified = 1) only when geo.json 'verified' gives it; otherwise it is read from the town
-        in the club's name, helped by geo.json 'clubs' and 'areas', and marked as a guess (verified = 0)."""
+        Two sources: the town in the club's name (helped by geo.json 'clubs' and 'areas') and the canton of the club's
+        address in the federation's list of member clubs, which is sometimes the home of its contact person. The canton
+        is certain (verified = 1) when both agree, or when geo.json 'verified' gives it; otherwise it is a guess."""
         sure = (cfg.get("verified") or {}).get(club)
         listed = self.federation(club, cfg)
-        guess = self._club(club, cfg, sure or (listed[3] if listed else None))
-        if listed and listed[3]:
-            if sure and sure != listed[3]:
-                self.conflicts.append(f"{club}: geo.json says {sure}, the federation's list {listed[3]}")
-            elif not sure:
-                first = self._club(club, cfg)
-                if first and first[0] != listed[3]:
-                    self.conflicts.append(f"{club}: guessed {first[0]} from the name, the federation's list says {listed[3]}")
-            canton = sure or listed[3]
-            if guess and guess[0] == canton and guess[1]:
-                return guess + [1]  # the town in the club's name, rather than the address of its contact person
-            hit = self.swiss_place(listed[2], canton) if canton == listed[3] else None
-            if hit and hit[2] == canton:
-                return [canton, listed[2], hit[0], hit[1], 1]
-            return [canton, None, None, None, 1]
+        addr = listed[3] if listed and listed[3] else None  # canton of the club's address in the federation's list
         if sure:
-            return guess + [1] if guess and guess[0] == sure else [sure, None, None, None, 1]
-        return guess + [0] if guess and guess[0] else None
+            g = self._club(club, cfg, sure)
+            if addr and addr != sure:
+                self.conflicts.append(f"{club}: geo.json says {sure}, the address in the federation's list {addr}")
+            return g + [1] if g and g[0] == sure else [sure, None, None, None, 1]
+        hinted = club in (cfg.get("clubs") or {})
+        g = self._club(club, cfg)
+        if g and not g[0]:
+            g = None
+        if g and g[1] and not hinted:
+            # a town in the club's name: a municipality lies in one canton, an address may be the secretary's home
+            same_name = {h[3] for h in self.swiss.get(geo_norm(g[1]), [])} or {g[0]}
+            if len(same_name) == 1:
+                if addr and addr != g[0]:
+                    self.conflicts.append(f"{club}: {g[1]} is in {g[0]}, the address in the federation's list is in {addr}")
+                return g + [int(addr == g[0])]  # certain when the name and the federation's address agree
+            if addr in same_name:  # Wohlen AG or Wohlen BE: the address decides
+                g = self._club(club, cfg, addr)
+                return g + [1]
+            if addr:
+                self.conflicts.append(f"{club}: several places called {g[1]} ({', '.join(sorted(same_name))}), address in {addr}")
+            return g + [0]
+        if g:  # canton from geo.json 'clubs' or 'areas', or from a canton code in the name
+            if addr and addr != g[0]:
+                self.conflicts.append(f"{club}: {g[0]} from its name or geo.json, the address in the federation's list is in {addr}")
+            return g + [int(addr == g[0])]
+        if addr:  # nothing in the name: the address is all there is
+            hit = self.swiss_place(listed[2], addr)
+            return [addr, listed[2] if hit and hit[2] == addr else None, hit[0] if hit and hit[2] == addr else None,
+                    hit[1] if hit and hit[2] == addr else None, 0]
+        return None
 
     CLUB_WORDS = {"leichtathletik", "athletics", "athletisme", "atletica", "la", "lauf", "und", "athletic", "team"}
 
