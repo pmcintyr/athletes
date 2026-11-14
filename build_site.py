@@ -425,6 +425,7 @@ class Gazetteer:
     def __init__(self, manual):
         self.manual = {geo_norm(k): v for k, v in (manual or {}).items()}
         self.idx, self.swiss, self.cache, self.missed = None, defaultdict(list), {}, defaultdict(int)
+        self.sa, self.sa_loose, self.conflicts = None, None, []
         try:
             import geonamescache
         except ImportError:
@@ -525,12 +526,39 @@ class Gazetteer:
         The canton is certain (verified = 1) only when geo.json 'verified' gives it; otherwise it is read from the town
         in the club's name, helped by geo.json 'clubs' and 'areas', and marked as a guess (verified = 0)."""
         sure = (cfg.get("verified") or {}).get(club)
-        g = self._club(club, cfg, sure)
+        listed = self.federation(club, cfg)
+        guess = self._club(club, cfg, sure or (listed[3] if listed else None))
+        if listed and listed[3]:
+            if sure and sure != listed[3]:
+                self.conflicts.append(f"{club}: geo.json says {sure}, the federation's list {listed[3]}")
+            elif not sure:
+                first = self._club(club, cfg)
+                if first and first[0] != listed[3]:
+                    self.conflicts.append(f"{club}: guessed {first[0]} from the name, the federation's list says {listed[3]}")
+            canton = sure or listed[3]
+            if guess and guess[0] == canton and guess[1]:
+                return guess + [1]  # the town in the club's name, rather than the address of its contact person
+            hit = self.swiss_place(listed[2], canton) if canton == listed[3] else None
+            if hit and hit[2] == canton:
+                return [canton, listed[2], hit[0], hit[1], 1]
+            return [canton, None, None, None, 1]
         if sure:
-            if g and g[0] == sure:
-                return g + [1]
-            return [sure, None, None, None, 1]
-        return g + [0] if g else None
+            return guess + [1] if guess and guess[0] == sure else [sure, None, None, None, 1]
+        return guess + [0] if guess and guess[0] else None
+
+    CLUB_WORDS = {"leichtathletik", "athletics", "athletisme", "atletica", "la", "lauf", "und", "athletic", "team"}
+
+    def federation(self, club, cfg):
+        """The club's entry in the Swiss Athletics club list ([name, postcode, town, canton]), by name: same name, or
+        the same words once 'Leichtathletik', 'Athletics' and the like are left out."""
+        if self.sa is None:
+            self.sa, self.sa_loose = {}, {}
+            for c in cfg.get("federation") or []:
+                self.sa[geo_norm(c[0])] = c
+                loose = frozenset(geo_norm(c[0]).split()) - self.CLUB_WORDS
+                self.sa_loose[loose] = None if loose in self.sa_loose else c  # two clubs with the same words: no loose match
+        n = geo_norm(club)
+        return self.sa.get(n) or (self.sa_loose.get(frozenset(n.split()) - self.CLUB_WORDS) if len(n.split()) > 1 else None)
 
     def _club(self, club, cfg, canton=None):
         ov = (cfg.get("clubs") or {}).get(club)
@@ -813,11 +841,13 @@ def geography(out, disc, active, cfg, gaz, club_geo, years, min_field=20):
         "regions": [{k: r.get(k) for k in ("id", "name", "short", "cantons", "source")} for r in cfg.get("regions", [])],
         "cantons": {c: [names[c], region_of.get(c)] + [stat[c][k] for k in keys] for c in names},
         "capitals": {c: (lambda h: [CAPITALS[c], h[0], h[1]] if h else None)(gaz.swiss_place(CAPITALS[c], c)) for c in names if c in CAPITALS},
-        "unplaced": unplaced, "checked": checked})
+        "unplaced": unplaced, "checked": checked, "federation_date": cfg.get("federation_date")})
     dump(out / "towns.json", gaz.towns())
     lost = sorted(((n, name) for cid, name, canton, n, _ in index if not canton), reverse=True)
     guessed = sorted(f"{name} ({canton})" for cid, name, canton, n, sure in index if canton and not sure)
     print(f"clubs: canton verified for {checked[1]}, guessed from the name for {checked[0]}: {', '.join(guessed)}")
+    if gaz.conflicts:
+        print(f"clubs: {len(gaz.conflicts)} cantons differ between sources: {'; '.join(sorted(set(gaz.conflicts)))}")
     print(f"clubs: {len(index)} with active athletes, {len(index) - unplaced[0]} placed in a canton"
           + (f"; not placed ({unplaced[1]} athletes): {', '.join(f'{name} ({n})' for n, name in lost[:120])}"
              + (f" and {len(lost) - 120} more" if len(lost) > 120 else "") if lost else ""))
@@ -898,6 +928,10 @@ def build(a):
     pcfg = json.loads(pf.read_text(encoding="utf-8")) if pf and pf.exists() else None
     gf = Path(a.geo) if a.geo else None
     gcfg = json.loads(gf.read_text(encoding="utf-8")) if gf and gf.exists() else None
+    ff = HERE / "clubs_swiss_athletics.json"  # member clubs with their canton, written by clubs_data.py
+    if gcfg is not None and ff.exists():
+        fed = json.loads(ff.read_text(encoding="utf-8"))
+        gcfg["federation"], gcfg["federation_date"] = fed.get("clubs", []), fed.get("fetched")
     gaz = Gazetteer((pcfg or {}).get("venues"))
     geo_cache = {}
 

@@ -81,8 +81,9 @@ the site from the stored data, without downloading anything.
   `#/canton/VD` and `#/region/ouest` give the five best per event. Everything comes from public Alabus results and
   every page says so.
 
-A club's canton is certain only when `geo.json` lists it under `verified` (taken from `club_canton.csv` of
-`alabus_scraper.py`, or from a cantonal association's list of member clubs). For every other club it is guessed
+A club's canton is the canton of its address in the list of member clubs of Swiss Athletics
+(`clubs_swiss_athletics.json`, read once a week from the federation's club finder by `clubs_data.py` and the
+"Club list" workflow), or the one `geo.json` gives under `verified`, which wins. For a club in neither it is guessed
 from the town in its name (`TV Länggasse Bern`, `Stade Genève`): `build_site.py` looks the words up in the GeoNames
 list of Swiss places, helped by `geo.json` (`areas` for regional names like Fricktal, `clubs` where the name has no
 town). A guessed canton is shown with "à vérifier" on every page, and the build log lists the guesses so they can
