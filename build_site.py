@@ -521,8 +521,18 @@ class Gazetteer:
         return None
 
     def club(self, club, cfg):
-        """Where a club is, from the town in its name -> [canton, town, lat, lon] (town parts None if only the canton
-        is known) or None. geo.json 'clubs' decides first, then towns, then the regional words of 'areas'."""
+        """Where a club is -> [canton, town, lat, lon, verified] (town parts None if only the canton is known) or None.
+        The canton is certain (verified = 1) only when geo.json 'verified' gives it; otherwise it is read from the town
+        in the club's name, helped by geo.json 'clubs' and 'areas', and marked as a guess (verified = 0)."""
+        sure = (cfg.get("verified") or {}).get(club)
+        g = self._club(club, cfg, sure)
+        if sure:
+            if g and g[0] == sure:
+                return g + [1]
+            return [sure, None, None, None, 1]
+        return g + [0] if g else None
+
+    def _club(self, club, cfg, canton=None):
         ov = (cfg.get("clubs") or {}).get(club)
         if ov:
             canton, town = (ov, None) if isinstance(ov, str) else (ov[0], ov[1] if len(ov) > 1 else None)
@@ -533,6 +543,7 @@ class Gazetteer:
         m = re.search(r"(?:^|\s)\(?([A-Z]{2})\)?\s*$", club)  # "TV Wohlen AG"
         code = m.group(1) if m and m.group(1) in CAPITALS else None
         toks = geo_norm(club[:m.start()] if code else club).split()
+        code = canton or code  # a verified canton also picks between two towns of the same name
         for n in range(min(4, len(toks)), 0, -1):
             found = []
             for i in range(len(toks) - n + 1):
@@ -757,7 +768,7 @@ def geography(out, disc, active, cfg, gaz, club_geo, years, min_field=20):
         if a["canton"]:
             stat[a["canton"]]["ath"] += 1
             stat[a["canton"]]["pod"] += a["pod"]
-    index, by_canton, unplaced = [], defaultdict(list), [0, 0]
+    index, by_canton, unplaced, checked = [], defaultdict(list), [0, 0], [0, 0]
     for cid, members in sorted(clubs.items()):
         name = active[max(members, key=lambda i: active[i]["last"])]["c"]
         g = club_geo(name)
@@ -770,10 +781,12 @@ def geography(out, disc, active, cfg, gaz, club_geo, years, min_field=20):
                          [[d, (a["sb"].get((d, ref(d))) or [0, None])[1], (a["sb"].get((d, ref(d) - 1)) or [0, None])[1],
                            a["pb"].get(d), nat.get(d)] for d in evs]])
         dump(out / "club" / f"{cid}.json", {"n": name, "g": g, "a": rows, "ev": sorted(club_ev.get(cid, []), key=lambda e: (e[2] / max(e[3], 1), e[0]))})
-        index.append([cid, name, canton, len(members)])
+        sure = int(bool(g and g[4]))
+        index.append([cid, name, canton, len(members), sure])
         if canton:
             stat[canton]["clubs"] += 1
-            by_canton[canton].append([cid, name, len(members)])
+            by_canton[canton].append([cid, name, len(members), sure])
+            checked[sure] += 1
         else:
             unplaced[0] += 1
             unplaced[1] += len(members)
@@ -795,9 +808,11 @@ def geography(out, disc, active, cfg, gaz, club_geo, years, min_field=20):
         "regions": [{k: r.get(k) for k in ("id", "name", "short", "cantons", "source")} for r in cfg.get("regions", [])],
         "cantons": {c: [names[c], region_of.get(c)] + [stat[c][k] for k in keys] for c in names},
         "capitals": {c: (lambda h: [CAPITALS[c], h[0], h[1]] if h else None)(gaz.swiss_place(CAPITALS[c], c)) for c in names if c in CAPITALS},
-        "unplaced": unplaced})
+        "unplaced": unplaced, "checked": checked})
     dump(out / "towns.json", gaz.towns())
-    lost = sorted(((n, name) for cid, name, canton, n in index if not canton), reverse=True)
+    lost = sorted(((n, name) for cid, name, canton, n, _ in index if not canton), reverse=True)
+    guessed = sorted(f"{name} ({canton})" for cid, name, canton, n, sure in index if canton and not sure)
+    print(f"clubs: canton verified for {checked[1]}, guessed from the name for {checked[0]}: {', '.join(guessed)}")
     print(f"clubs: {len(index)} with active athletes, {len(index) - unplaced[0]} placed in a canton"
           + (f"; not placed ({unplaced[1]} athletes): {', '.join(f'{name} ({n})' for n, name in lost[:120])}"
              + (f" and {len(lost) - 120} more" if len(lost) > 120 else "") if lost else ""))

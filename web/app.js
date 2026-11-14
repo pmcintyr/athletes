@@ -209,7 +209,7 @@ async function profile(id) {
       <div class="facts">
         <span>${a.s === "W" ? "Née" : "Né"} en <strong class="num">${a.by}</strong></span>
         ${a.c ? `<span>Club ${META.geo ? `<a href="${clubHref(a.c)}"><strong>${esc(a.c)}</strong></a>` : `<strong>${esc(a.c)}</strong>`}</span>` : ""}
-        ${canton && geo && geo.cantons[canton] ? `<span>Canton <a href="#/canton/${canton}"><strong>${esc(geo.cantons[canton][0])}</strong></a></span>` : ""}
+        ${canton && geo && geo.cantons[canton] ? `<span>Canton <a href="#/canton/${canton}"><strong>${esc(geo.cantons[canton][0])}</strong></a>${a.g[4] ? "" : UNSURE}</span>` : ""}
         ${a.cs.length > 1 ? `<span>Avant : ${a.cs.slice(0, -1).reverse().map(esc).join(", ")}</span>` : ""}
         ${a.pg ? `<span><a href="p/${id}.html">Lien à partager</a></span>` : ""}
         ${META.plan ? `<span><a href="#/plan/${id}">Planifier ma saison</a></span>` : ""}
@@ -237,7 +237,11 @@ async function profile(id) {
       <label>Saison <select id="fy"><option value="">Toutes</option>${seasons.map(y => `<option>${y}</option>`).join("")}</select></label>
     </div>
     <div id="res"></div>
-    ${META.full_results ? "" : `<p class="note">Seule la meilleure performance de chaque saison et épreuve est disponible pour l'instant.</p>`}`;
+    ${META.full_results ? "" : `<p class="note">Seule la meilleure performance de chaque saison et épreuve est disponible pour l'instant.</p>`}
+    ${META.contact ? `<aside class="feedback"><strong>C'est votre profil, ou vous y voyez une erreur ?</strong>
+      <span>${mailLink("Signaler une erreur", `Athlètes suisses : erreur sur le profil de ${a.n}`, "Ce qui est faux (performance, club, canton, année de naissance, homonyme) :")}</span>
+      <span>${mailLink("Retirer mon profil", `Athlètes suisses : retrait du profil de ${a.n}`, `Je demande le retrait de mon profil (${a.n}, ${a.by}).`)}</span>
+      <span class="muted">Une demande de retrait est acceptée sans justification à donner ; le profil disparaît à la mise à jour qui suit son traitement.</span></aside>` : ""}`;
 
   app.querySelector("#cmp").replaceWith(Object.assign(searchBox({
     label: "Comparer avec un autre athlète", placeholder: "Nom ou prénom", small: true, exclude: id,
@@ -397,6 +401,13 @@ async function cadresPage() {
    Data from build_site.py: geo.json (cantons, regions), clubs.json, club/<id>.json, canton/<XX>.json, region/<id>.json and
    rk/<xyz>.json (ranks of each active athlete). "Active" = an adult with a result in the last two seasons. */
 const clubHref = name => `#/club/${slug(name)}`;
+const UNSURE = ` <span class="tag w" title="Canton déduit du nom du club, pas encore vérifié">à vérifier</span>`;
+/* mailto link to the site's contact with the page address in the message */
+function mailLink(label, subject, body) {
+  if (!META.contact) return "";
+  const text = `${body}\n\nPage : ${location.href}\n`;
+  return `<a href="mailto:${esc(META.contact)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}">${label}</a>`;
+}
 const optJSON = path => getJSON(path).catch(() => null);
 const ordinal = n => (n === 1 ? "1er" : `${n}e`);
 const seasonsLabel = g => (g.years[0] === g.years[1] ? `saison ${g.years[0]}` : `plein air ${g.years[0]}, salle ${g.years[1]}`);
@@ -437,12 +448,13 @@ async function clubsPage() {
       <label>Canton <select id="cc"><option value="">Tous</option>${Object.entries(geo.cantons).sort((x, y) => x[1][0].localeCompare(y[1][0], "fr")).map(([k, v]) => `<option value="${k}">${esc(v[0])}</option>`).join("")}<option value="?">Non situé</option></select></label>
     </div>
     <div id="cl"></div>
-    <p class="note">${fmtInt(clubs.length)} clubs comptent au moins un athlète majeur avec un résultat depuis ${Math.min(...geo.years) - 1}. Le canton est déduit de la localité du club${geo.unplaced[0] ? ` ; ${geo.unplaced[0]} club${geo.unplaced[0] > 1 ? "s n'ont" : " n'a"} pas pu être situé${geo.unplaced[0] > 1 ? "s" : ""}` : ""}.</p>`;
+    <p class="note">${mailLink("Signaler un canton faux ou un club manquant", "Athlètes suisses : correction d'un club", "Club concerné :\nCanton correct :")}</p>
+    <p class="note">${fmtInt(clubs.length)} clubs comptent au moins un athlète majeur avec un résultat depuis ${Math.min(...geo.years) - 1}. Le canton est vérifié pour ${geo.checked[1]} clubs ; pour ${geo.checked[0]} autres il est déduit du nom du club et marqué « à vérifier »${geo.unplaced[0] ? ` ; ${geo.unplaced[0]} club${geo.unplaced[0] > 1 ? "s n'ont" : " n'a"} pas pu être situé${geo.unplaced[0] > 1 ? "s" : ""}` : ""}.</p>`;
   const draw = () => {
     const q = norm(app.querySelector("#cq").value), c = app.querySelector("#cc").value;
     const rows = clubs.filter(x => (!q || norm(x[1]).includes(q)) && (!c || (c === "?" ? !x[2] : x[2] === c)));
     app.querySelector("#cl").innerHTML = rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Club</th><th>Canton</th><th class="r">Athlètes</th></tr></thead>
-      <tbody>${rows.slice(0, 400).map(([id, n, k, na]) => `<tr><td><a href="#/club/${id}">${esc(n)}</a></td><td>${k ? `<a href="#/canton/${k}">${esc(geo.cantons[k] ? geo.cantons[k][0] : k)}</a>` : `<span class="muted">non situé</span>`}</td><td class="r num">${na}</td></tr>`).join("")}</tbody></table></div>
+      <tbody>${rows.slice(0, 400).map(([id, n, k, na, sure]) => `<tr><td><a href="#/club/${id}">${esc(n)}</a></td><td>${k ? `<a href="#/canton/${k}">${esc(geo.cantons[k] ? geo.cantons[k][0] : k)}</a>${sure ? "" : UNSURE}` : `<span class="muted">non situé</span>`}</td><td class="r num">${na}</td></tr>`).join("")}</tbody></table></div>
       ${rows.length > 400 ? `<p class="note">${rows.length - 400} autres clubs : précisez la recherche.</p>` : ""}` : `<p class="empty">Aucun club pour ce filtre.</p>`;
   };
   app.querySelector("#cq").addEventListener("input", draw);
@@ -461,7 +473,7 @@ async function clubPage(cid) {
       <h1>${esc(c.n)}</h1>
       <div class="facts">
         ${c.g && c.g[1] ? `<span>${esc(c.g[1])}</span>` : ""}
-        ${canton ? `<span>Canton <a href="#/canton/${canton}"><strong>${esc(geo.cantons[canton] ? geo.cantons[canton][0] : canton)}</strong></a></span>` : ""}
+        ${canton ? `<span>Canton <a href="#/canton/${canton}"><strong>${esc(geo.cantons[canton] ? geo.cantons[canton][0] : canton)}</strong></a>${c.g[4] ? "" : UNSURE}</span>` : ""}
         <span><strong class="num">${c.a.length}</strong> athlète${c.a.length > 1 ? "s" : ""} actif${c.a.length > 1 ? "s" : ""}</span>
       </div>
     </section>
@@ -473,7 +485,8 @@ async function clubPage(cid) {
     <div id="cev"></div>
     <h2>Athlètes</h2>
     <div id="cat"></div>
-    <p class="note">Athlètes majeurs avec un résultat depuis ${Math.min(...years) - 1}, rattachés à leur dernier club connu ; les moins de ${META.min_age} ans ne sont pas affichés. Rangs et meilleures performances : ${seasonsLabel(geo)}, chronométrage électronique et vent régulier. Le rang du club est celui de son meilleur athlète parmi les clubs classés dans l'épreuve.</p>`;
+    <p class="note">Athlètes majeurs avec un résultat depuis ${Math.min(...years) - 1}, rattachés à leur dernier club connu ; les moins de ${META.min_age} ans ne sont pas affichés. Rangs et meilleures performances : ${seasonsLabel(geo)}, chronométrage électronique et vent régulier. Le rang du club est celui de son meilleur athlète parmi les clubs classés dans l'épreuve.${canton && !c.g[4] ? " Le canton est déduit du nom du club et n'a pas encore été vérifié." : ""}</p>
+    <p class="note">${mailLink("Signaler une erreur sur cette page", `Athlètes suisses : erreur sur la page de ${c.n}`, "Ce qui est faux (canton, athlète qui n'est plus au club, performance) :")}</p>`;
   let sex = "";
   const draw = () => {
     const fd = app.querySelector("#ce").value;
@@ -526,7 +539,7 @@ async function cantonsPage(mode) {
       <span class="seg"><a href="#/cantons" aria-current="${!byRegion}">Cantons</a><a href="#/cantons/regions" aria-current="${byRegion}">Régions</a></span>
     </div>
     <div id="gt"></div>
-    <p class="note">Un athlète compte pour le canton de son dernier club. Athlètes actifs : majeurs avec un résultat depuis ${Math.min(...geo.years) - 1}. Top 10, podium et meilleure performance suisse : rang dans la liste suisse de la saison, par épreuve et par sexe, dans les épreuves comptant au moins ${geo.min_field} athlètes classés (une place par athlète et par épreuve, salle et plein air séparés). Podiums aux championnats suisses : toutes catégories, saison ${Math.max(...geo.years)}. Les trois régions sont celles des championnats régionaux de Swiss Athletics.${geo.unplaced[1] ? ` ${fmtInt(geo.unplaced[1])} athlètes de ${geo.unplaced[0]} club${geo.unplaced[0] > 1 ? "s" : ""} non situé${geo.unplaced[0] > 1 ? "s" : ""} ne sont comptés nulle part.` : ""} Les athlètes de moins de ${META.min_age} ans ne sont pas comptés.</p>`;
+    <p class="note">Un athlète compte pour le canton de son dernier club. Le canton est vérifié pour ${geo.checked[1]} clubs sur ${geo.checked[0] + geo.checked[1]} ; pour les ${geo.checked[0]} autres il est déduit de la localité dans le nom du club et marqué « à vérifier » sur les pages des clubs : les chiffres des cantons concernés peuvent donc encore bouger. Athlètes actifs : majeurs avec un résultat depuis ${Math.min(...geo.years) - 1}. Top 10, podium et meilleure performance suisse : rang dans la liste suisse de la saison, par épreuve et par sexe, dans les épreuves comptant au moins ${geo.min_field} athlètes classés (une place par athlète et par épreuve, salle et plein air séparés). Podiums aux championnats suisses : toutes catégories, saison ${Math.max(...geo.years)}. Les trois régions sont celles des championnats régionaux de Swiss Athletics.${geo.unplaced[1] ? ` ${fmtInt(geo.unplaced[1])} athlètes de ${geo.unplaced[0]} club${geo.unplaced[0] > 1 ? "s" : ""} non situé${geo.unplaced[0] > 1 ? "s" : ""} ne sont comptés nulle part.` : ""} Les athlètes de moins de ${META.min_age} ans ne sont pas comptés. ${mailLink("Signaler une erreur", "Athlètes suisses : erreur dans les cantons", "Ce qui est faux :")}</p>`;
   const draw = () => {
     const sorted = rows.slice().sort((x, y) => (typeof x[sortCol] === "number" ? (x[sortCol] - y[sortCol]) * dir : String(x[sortCol]).localeCompare(String(y[sortCol]), "fr") * dir));
     const max = COLS.map((_, i) => Math.max(1, ...rows.map(r => r[3 + i])));
@@ -579,8 +592,8 @@ async function unitPage(kind, key) {
     <div id="ub"></div>
     <h2>Clubs</h2>
     ${data.clubs.length ? `<div class="tbl-wrap"><table><thead><tr><th>Club</th><th class="r">Athlètes actifs</th></tr></thead>
-      <tbody>${data.clubs.map(([id, n, na]) => `<tr><td><a href="#/club/${id}">${esc(n)}</a></td><td class="r num">${na}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty small">Aucun club situé ici.</p>`}
-    <p class="note">${seasonsLabel(geo)[0].toUpperCase() + seasonsLabel(geo).slice(1)} : les cinq meilleurs par épreuve parmi les athlètes majeurs des clubs ${region ? "de la région" : "du canton"}, avec leur rang dans la liste suisse. Épreuves comptant au moins ${geo.min_field} athlètes classés en Suisse. Liste non officielle, d'après les résultats publics de Swiss Athletics.</p>`;
+      <tbody>${data.clubs.map(([id, n, na, sure]) => `<tr><td><a href="#/club/${id}">${esc(n)}</a>${sure ? "" : UNSURE}</td><td class="r num">${na}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty small">Aucun club situé ici.</p>`}
+    <p class="note">${seasonsLabel(geo)[0].toUpperCase() + seasonsLabel(geo).slice(1)} : les cinq meilleurs par épreuve parmi les athlètes majeurs des clubs ${region ? "de la région" : "du canton"}, avec leur rang dans la liste suisse. Épreuves comptant au moins ${geo.min_field} athlètes classés en Suisse. Liste non officielle, d'après les résultats publics de Swiss Athletics. « À vérifier » : club rattaché au canton d'après son nom, sans confirmation. ${mailLink("Signaler une erreur", `Athlètes suisses : erreur sur la page ${name}`, "Ce qui est faux :")}</p>`;
   const draw = () => {
     const list = (data.best[sex] || []).filter(([d]) => D(d)[0] === io);
     app.querySelector("#ub").innerHTML = list.length ? `<div class="cols">${list.map(([d, rows]) => `<section class="list-sec"><h3>${esc(dName(d))}</h3><div class="tbl-wrap"><table>

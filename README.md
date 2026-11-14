@@ -35,7 +35,7 @@ the site from the stored data, without downloading anything.
 | New cadre lists or limits (each autumn) | Edit `cadres.json`: replace the athletes rows, the dates and the PDF links (or ask Claude) |
 | New championship dates or entry standards | Edit `planner.json`: the `championships` rows, with the link they were copied from |
 | A meeting shows no travel estimate | The build log lists "venues without coordinates": add them under `venues` in `planner.json` |
-| A club is in the wrong canton, or in none | The build log lists the clubs "not placed": add `"Club name": ["VD", "Town"]` under `clubs` in `geo.json` |
+| A club is in the wrong canton, in none, or shown "à vérifier" | Add `"Club name": "VD"` under `verified` in `geo.json` (the build log lists the guessed and the unplaced clubs) |
 | Something failed | GitHub emails you; the run page shows the reason at the bottom of the step that failed |
 
 ## Privacy
@@ -77,9 +77,14 @@ the site from the stored data, without downloading anything.
   `#/canton/VD` and `#/region/ouest` give the five best per event. Everything comes from public Alabus results and
   every page says so.
 
-A club's canton comes from the town in its name (`TV Länggasse Bern`, `Stade Genève`): `build_site.py` looks the
-words up in the GeoNames list of Swiss places, then in `geo.json` (`areas` for regional names like Fricktal,
-`clubs` for corrections). An athlete counts for the canton of the latest club. "Active" means a result in the
+A club's canton is certain only when `geo.json` lists it under `verified` (taken from `club_canton.csv` of
+`alabus_scraper.py`, or from a cantonal association's list of member clubs). For every other club it is guessed
+from the town in its name (`TV Länggasse Bern`, `Stade Genève`): `build_site.py` looks the words up in the GeoNames
+list of Swiss places, helped by `geo.json` (`areas` for regional names like Fricktal, `clubs` where the name has no
+town). A guessed canton is shown with "à vérifier" on every page, and the build log lists the guesses so they can
+be checked and moved to `verified`. The regions follow the invitations of the regional championships (West 2023,
+Ost 2024, Zentral 2016, linked in `geo.json`). Masters events are offered from age 30, as Swiss Masters Athletics
+does for stadium athletics. An athlete counts for the canton of the latest club. "Active" means a result in the
 last two seasons. Ranks are for the latest season that has enough results (outdoor and indoor decided separately).
 
 ## Season planner (`#/plan`)
