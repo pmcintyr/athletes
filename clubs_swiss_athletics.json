@@ -1,0 +1,2551 @@
+{
+"source": "https://www.swiss-athletics.ch/vereinsfinder/",
+"fetched": "2026-11-14",
+"_about": "Member clubs of Swiss Athletics as listed by its club finder: [name, postcode, town, canton]. Written by clubs_data.py, do not edit by hand (corrections go in geo.json).",
+"clubs": [
+[
+"100 Marathon Club Schweiz",
+"8610",
+"Uster",
+"ZH"
+],
+[
+"Aarau Track Club",
+"5000",
+"Aarau",
+"AG"
+],
+[
+"AC Murten",
+"3280",
+"Murten",
+"FR"
+],
+[
+"Académie Trail Running Valais",
+"1920",
+"Martigny",
+"VS"
+],
+[
+"Adliswil Track Team",
+"8134",
+"Adliswil",
+"ZH"
+],
+[
+"AJ TV Landquart",
+"7302",
+"Landquart",
+"GR"
+],
+[
+"Akad. Sportverband Zürich",
+"8049",
+"Zürich",
+"ZH"
+],
+[
+"All Blacks Thun",
+"3600",
+"Thun",
+"BE"
+],
+[
+"Amis-Gym Forel-Savigny",
+"1073",
+"Mollie-Margot",
+"VD"
+],
+[
+"Amriswil-Athletics",
+"8580",
+"Amriswil",
+"TG"
+],
+[
+"AS Monteceneri",
+"6802",
+"Rivera-Monteceneri",
+"TI"
+],
+[
+"ASSPO Riva San Vitale",
+"6826",
+"Riva San Vitale",
+"TI"
+],
+[
+"ATHLE.ch",
+"1004",
+"Lausanne",
+"VD"
+],
+[
+"AthleTEAM Lutry",
+"1095",
+"Lutry",
+"VD"
+],
+[
+"Athletic Club 3-Chêne",
+"1222",
+"Vésenaz",
+"GE"
+],
+[
+"Athletic Team Rechthalten",
+"1712",
+"Tafers",
+"FR"
+],
+[
+"Athletica Veveyse",
+"1800",
+"Vevey",
+"FR"
+],
+[
+"AthleticFit GmbH",
+"8051",
+"Zürich",
+"ZH"
+],
+[
+"Athleticteam KTV Altstätten",
+"9450",
+"Altstätten",
+"SG"
+],
+[
+"Athletikzentrum Unterwalden",
+"6056",
+"Kägiswil",
+"OW"
+],
+[
+"Athlétisme Viseu-Genève",
+"1234",
+"Vessy/Genève",
+"GE"
+],
+[
+"ATLET (Association Team Léman Espoirs Triathlon)",
+"1814",
+"La Tour-de-Peilz",
+"VD"
+],
+[
+"Atletica CERESIO",
+"6925",
+"Gentilino",
+"TI"
+],
+[
+"Atletica Mendrisiotto",
+"6850",
+"Mendrisio",
+"TI"
+],
+[
+"Atletica Tenero 90",
+"6598",
+"Tenero-Contra",
+"TI"
+],
+[
+"AUDACIA Hochdorf Leichtathletik",
+"6280",
+"Hochdorf",
+"LU"
+],
+[
+"Basel Dragons running club",
+"4052",
+"Basel",
+"BS"
+],
+[
+"Basel Running Club",
+"4051",
+"Basel",
+"BL"
+],
+[
+"Basel Running Club Athletics",
+"4125",
+"Riehen",
+"BS"
+],
+[
+"Biberist aktiv! Leichtathletik",
+"4500",
+"Solothurn",
+"SO"
+],
+[
+"Biel/Bienne Athletics",
+"2501",
+"Biel/Bienne",
+"BE"
+],
+[
+"Blind-Jogging",
+"4051",
+"Basel",
+"BS"
+],
+[
+"BTV Aarau Athletics",
+"5032",
+"Aarau Rohr",
+"AG"
+],
+[
+"BTV Chur Leichtathletik",
+"7000",
+"Chur",
+"GR"
+],
+[
+"C.H. Châtelaine",
+"1219",
+"Châtelaine",
+"GE"
+],
+[
+"CA Belfaux",
+"1782",
+"Belfaux",
+"FR"
+],
+[
+"CA Broyard",
+"1530",
+"Payerne",
+"VD"
+],
+[
+"CA Courtelary",
+"2608",
+"Courtelary",
+"BE"
+],
+[
+"CA Dents-du-Midi",
+"1872",
+"Troistorrents",
+"VS"
+],
+[
+"CA des Franches-Montagnes",
+"2350",
+"Saignelégier",
+"JU"
+],
+[
+"CA Fontenais",
+"2903",
+"Villars-sur-Fontenais",
+"JU"
+],
+[
+"CA Fribourg",
+"1701",
+"Fribourg",
+"FR"
+],
+[
+"CA Genève",
+"1219",
+"Aïre",
+"GE"
+],
+[
+"CA Gibloux Farvagny",
+"1752",
+"Villars-sur-Glâne",
+"FR"
+],
+[
+"CA Marly",
+"1723",
+"Marly",
+"FR"
+],
+[
+"CA Monthey-Chablais",
+"1870",
+"Monthey",
+"VS"
+],
+[
+"CA Moutier",
+"2740",
+"Moutier",
+"BE"
+],
+[
+"CA Riviera",
+"1800",
+"Vevey 1",
+"VD"
+],
+[
+"CA Rosé",
+"1754",
+"Avry-sur-Matran",
+"FR"
+],
+[
+"CA Sierre DSG",
+"3960",
+"Sierre",
+"VS"
+],
+[
+"CA Sion",
+"1950",
+"Sion 4",
+"VS"
+],
+[
+"CA Vétroz",
+"1963",
+"Vétroz",
+"VS"
+],
+[
+"CABV Martigny",
+"1920",
+"Martigny 1",
+"VS"
+],
+[
+"CARC Romont",
+"1680",
+"Romont",
+"FR"
+],
+[
+"CC Running Saxon",
+"1907",
+"Saxon",
+"VS"
+],
+[
+"CEP Cortaillod",
+"2016",
+"Cortaillod",
+"NE"
+],
+[
+"Cham Athletics",
+"6330",
+"Cham",
+"ZG"
+],
+[
+"CHP Genève",
+"1204",
+"Genève",
+"GE"
+],
+[
+"Club de Marche de Monthey",
+"1872",
+"Troistorrents",
+"VS"
+],
+[
+"Club Les Trotteurs",
+"1926",
+"Fully",
+"VS"
+],
+[
+"Club Sportif Le Pâquier",
+"1661",
+"Pâquier-Montbarry",
+"FR"
+],
+[
+"Cottens Athlètes",
+"1726",
+"Farvagny-le-Grand",
+"FR"
+],
+[
+"COVA Nyon",
+"1260",
+"Nyon",
+"VD"
+],
+[
+"CS 13 Etoiles",
+"1971",
+"Grimisuat",
+"VS"
+],
+[
+"CS Le Mouret",
+"1724",
+"Le Mouret",
+"FR"
+],
+[
+"CS Marsens",
+"1633",
+"Marsens",
+"FR"
+],
+[
+"CS Neirivue",
+"1665",
+"Estavannens",
+"FR"
+],
+[
+"Delémont Athlétisme",
+"2800",
+"Delémont",
+"JU"
+],
+[
+"Ecole nouvelle de la Suisse Romande",
+"1012",
+"Lausanne",
+"VD"
+],
+[
+"ES Ayent Anzère",
+"1966",
+"Ayent",
+"VS"
+],
+[
+"ESV Eschenbach",
+"6274",
+"Eschenbach LU",
+"LU"
+],
+[
+"ETV Schindellegi",
+"8834",
+"Schindellegi",
+"SZ"
+],
+[
+"FG Malcantone",
+"6987",
+"Caslano",
+"TI"
+],
+[
+"Footing-Club Lausanne",
+"1110",
+"Morges",
+"VD"
+],
+[
+"Free Runners Genève",
+"1254",
+"Jussy",
+"GE"
+],
+[
+"Free Runners Grenchen",
+"2543",
+"Lengnau BE",
+"BE"
+],
+[
+"FSG Alle",
+"2942",
+"Alle",
+"JU"
+],
+[
+"FSG Avenches",
+"1580",
+"Avenches",
+"VD"
+],
+[
+"FSG Bassecourt",
+"2854",
+"Bassecourt",
+"JU"
+],
+[
+"FSG Bernex-Confignon",
+"1233",
+"Bernex",
+"GE"
+],
+[
+"FSG Bevaix",
+"2022",
+"Bevaix",
+"NE"
+],
+[
+"FSG Cernier",
+"2058",
+"le Pâquier",
+"NE"
+],
+[
+"FSG Chexbres",
+"1071",
+"Chexbres",
+"VD"
+],
+[
+"FSG Corcelles-Cormondrèche",
+"2013",
+"Colombier NE",
+"NE"
+],
+[
+"FSG Courgenay",
+"2950",
+"Courgenay",
+"JU"
+],
+[
+"FSG Courroux",
+"2710",
+"Tavannes",
+"BE"
+],
+[
+"FSG Couvet",
+"2108",
+"Couvet",
+"NE"
+],
+[
+"FSG Epalinges",
+"1304",
+"Cossonay",
+"VD"
+],
+[
+"FSG Estavayer",
+"1473",
+"Font",
+"FR"
+],
+[
+"FSG Geneveys et Coffrane",
+"2206",
+"Les Geneveys-sur-Coffrane",
+"NE"
+],
+[
+"FSG Gimel",
+"1188",
+"Gimel",
+"VD"
+],
+[
+"FSG Grandson",
+"1424",
+"Champagne",
+"VD"
+],
+[
+"FSG La Neuveville",
+"2520",
+"La Neuveville",
+"BE"
+],
+[
+"FSG Le Locle",
+"2400",
+"Le Locle",
+"NE"
+],
+[
+"FSG Meyrin",
+"1217",
+"Meyrin",
+"GE"
+],
+[
+"FSG Morges",
+"1125",
+"Monnaz",
+"VD"
+],
+[
+"FSG Orbe-Ancienne",
+"1350",
+"Orbe",
+"VD"
+],
+[
+"FSG Saint-Cierges",
+"1410",
+"St-Cierges",
+"VD"
+],
+[
+"FSG St-Imier",
+"2610",
+"St-Imier",
+"BE"
+],
+[
+"FSG Tavannes",
+"2710",
+"Tavannes",
+"BE"
+],
+[
+"FSG Versoix",
+"1290",
+"Versoix",
+"GE"
+],
+[
+"Fun and Run Thun",
+"3604",
+"Thun",
+"BE"
+],
+[
+"Fémina Vicques",
+"2824",
+"Vicques",
+"JU"
+],
+[
+"GAB Bellinzona",
+"6500",
+"Bellinzona",
+"TI"
+],
+[
+"GAD Dongio",
+"6715",
+"Dongio",
+"TI"
+],
+[
+"Gerbersport",
+"3075",
+"Rüfenacht BE",
+"BE"
+],
+[
+"GG Bern",
+"3012",
+"Bern",
+"BE"
+],
+[
+"GS Franches-Montagnes",
+"2340",
+"Le Noirmont",
+"JU"
+],
+[
+"GS Malleray-Bévilard",
+"2735",
+"Malleray",
+"BE"
+],
+[
+"Gym la Coudre",
+"2000",
+"Neuchâtel",
+"NE"
+],
+[
+"Gym Rolle",
+"1180",
+"Rolle",
+"VD"
+],
+[
+"Hochwacht Zug",
+"6312",
+"Steinhausen",
+"ZG"
+],
+[
+"Ingold Rönners Laufträff",
+"3360",
+"Herzogenbuchsee",
+"BE"
+],
+[
+"Institut Florimont",
+"1213",
+"Petit-Lancy",
+"GE"
+],
+[
+"International Running Club Zürich",
+"8001",
+"Zürich",
+"ZH"
+],
+[
+"InVia Run",
+"1260",
+"Nyon",
+"VD"
+],
+[
+"Jura Sports",
+"1297",
+"Founex",
+"VD"
+],
+[
+"Kinder-Camps Athletics",
+"4105",
+"Biel-Benken BL",
+"BL"
+],
+[
+"KTV Altendorf",
+"8856",
+"Tuggen",
+"SZ"
+],
+[
+"KTV Bütschwil",
+"9606",
+"Bütschwil",
+"SG"
+],
+[
+"KTV Freienbach",
+"8832",
+"Wilen",
+"SZ"
+],
+[
+"KTV Oberriet",
+"9463",
+"Oberriet SG",
+"SG"
+],
+[
+"KTV Wil LA",
+"9533",
+"Kirchberg",
+"SG"
+],
+[
+"LA Mutschellen",
+"5620",
+"Bremgarten",
+"AG"
+],
+[
+"LA Nidwalden",
+"6370",
+"Stans",
+"NW"
+],
+[
+"LA Rüegsauschachen",
+"3309",
+"Kernenried",
+"BE"
+],
+[
+"LA Sennwald",
+"9466",
+"Sennwald",
+"SG"
+],
+[
+"LA Speicher",
+"9042",
+"Speicher",
+"AR"
+],
+[
+"LA TV Wolfwil",
+"4628",
+"Wolfwil",
+"SO"
+],
+[
+"LA Villmergen",
+"5612",
+"Villmergen",
+"AG"
+],
+[
+"LA Wyland",
+"8478",
+"Thalheim an der Thur",
+"ZH"
+],
+[
+"LA-Riege TV Olten",
+"4614",
+"Hägendorf",
+"SO"
+],
+[
+"LA-Team Lenzburg",
+"5600",
+"Lenzburg",
+"AG"
+],
+[
+"LAC TV Unterstrass",
+"8046",
+"Zürich",
+"ZH"
+],
+[
+"LAC Wohlen",
+"3033",
+"Wohlen b. Bern",
+"BE"
+],
+[
+"LAG Gossau",
+"9200",
+"Gossau SG",
+"SG"
+],
+[
+"LAG TV Zollikofen",
+"3038",
+"Kirchlindach",
+"BE"
+],
+[
+"LAR Binningen",
+"4052",
+"Basel",
+"BS"
+],
+[
+"LAR Bischofszell",
+"9215",
+"Schönenberg an der Thur",
+"TG"
+],
+[
+"LAR Satus Oberentfelden",
+"5000",
+"Aarau",
+"AG"
+],
+[
+"LAR STV Hitzkirch",
+"6242",
+"Wauwil",
+"LU"
+],
+[
+"LAR TV Rüti",
+"8632",
+"Tann",
+"ZH"
+],
+[
+"LAR TV Windisch",
+"5200",
+"Brugg",
+"AG"
+],
+[
+"LAR Tägerwilen-Kreuzlingen",
+"8274",
+"Gottlieben",
+"TG"
+],
+[
+"LAS Old Boys Basel",
+"4054",
+"Basel",
+"BS"
+],
+[
+"LAT Sense (Lauf und Athletikteam)",
+"1712",
+"Tafers",
+"FR"
+],
+[
+"Lauf-Treff Buchs SG",
+"9472",
+"Grabs",
+"SG"
+],
+[
+"Laufental Thierstein Athletics",
+"4226",
+"Breitenbach",
+"SO"
+],
+[
+"Laufgruppe Cham Track",
+"6330",
+"Cham",
+"ZG"
+],
+[
+"Laufgruppe Horn Gebenstorf",
+"5412",
+"Gebenstorf",
+"AG"
+],
+[
+"Laufgruppe Staufberg Staufen",
+"5600",
+"Lenzburg",
+"AG"
+],
+[
+"Laufgruppe Willigen LGW",
+"3860",
+"Schattenhalb",
+"BE"
+],
+[
+"Laufsportgruppe Brugg",
+"5200",
+"Brugg",
+"AG"
+],
+[
+"Laufsportgruppe Olten",
+"4614",
+"Hägendorf",
+"SO"
+],
+[
+"Laufsportverband Oberwallis",
+"3900",
+"Gamsen",
+"VS"
+],
+[
+"Laufsportverein Basel",
+"4000",
+"Basel",
+"BS"
+],
+[
+"Laufsportverein Rothrist",
+"4852",
+"Rothrist",
+"AG"
+],
+[
+"Lauftreff Goldach",
+"9403",
+"Goldach",
+"SG"
+],
+[
+"Laufträff Birsegg Aesch",
+"4410",
+"Liestal",
+"BL"
+],
+[
+"Laufträff Büren an der Aare",
+"3294",
+"Büren an der Aare",
+"BE"
+],
+[
+"Laufträff Solothurn",
+"4566",
+"Oekingen",
+"SO"
+],
+[
+"Lausanne-Sports Athlétisme",
+"1018",
+"Lausanne",
+"VD"
+],
+[
+"LAV Glarus",
+"8750",
+"Riedern",
+"GL"
+],
+[
+"LC Altdorf",
+"6460",
+"Altdorf/UR",
+"UR"
+],
+[
+"LC Basel",
+"4052",
+"Basel",
+"BS"
+],
+[
+"LC Bottighofen",
+"8598",
+"Bottighofen",
+"TG"
+],
+[
+"LC Brühl Leichtathletik",
+"9016",
+"St. Gallen",
+"SG"
+],
+[
+"LC Emmenstrand",
+"6020",
+"Emmenbrücke",
+"LU"
+],
+[
+"LC Frauenfeld",
+"8500",
+"Frauenfeld",
+"TG"
+],
+[
+"LC Furttal ZH-Nord",
+"8165",
+"Oberweiningen",
+"ZH"
+],
+[
+"LC Kirchberg",
+"3422",
+"Kirchberg BE",
+"BE"
+],
+[
+"LC Luzern",
+"6000",
+"Luzern",
+"LU"
+],
+[
+"LC Meilen",
+"8704",
+"Herrliberg",
+"ZH"
+],
+[
+"LC Rafzerfeld",
+"8194",
+"Hüntwangen",
+"ZH"
+],
+[
+"LC Rapperswil-Jona",
+"8716",
+"Schmerikon",
+"SG"
+],
+[
+"LC Regensdorf",
+"8910",
+"Affoltern am Albis",
+"ZH"
+],
+[
+"LC Schaan",
+"9494",
+"Schaan / FL",
+""
+],
+[
+"LC Schaffhausen",
+"8201",
+"Schaffhausen",
+"SH"
+],
+[
+"LC Scharnachtal",
+"3713",
+"Reichenbach",
+"BE"
+],
+[
+"LC Therwil",
+"4106",
+"Therwil",
+"BL"
+],
+[
+"LC Turicum",
+"8700",
+"Küsnacht ZH",
+"ZH"
+],
+[
+"LC Uster",
+"8610",
+"Uster",
+"ZH"
+],
+[
+"LC Vaduz",
+"9490",
+"Vaduz",
+""
+],
+[
+"LC Zürich",
+"8048",
+"Zürich",
+"ZH"
+],
+[
+"Leichtathletik Alpnach",
+"6055",
+"Alpnach",
+"OW"
+],
+[
+"Leichtathletik Arth",
+"6415",
+"Arth",
+"SZ"
+],
+[
+"Leichtathletik Kerns",
+"6064",
+"Kerns",
+"OW"
+],
+[
+"Leichtathletik Nesslau",
+"9650",
+"Nesslau",
+"SG"
+],
+[
+"Leichtathletik-Club Dübendorf",
+"8600",
+"Dübendorf",
+"ZH"
+],
+[
+"Leichtathletik-Vereinigung Horw",
+"6048",
+"Horw",
+"LU"
+],
+[
+"Leichtathletikclub Oensingen",
+"4702",
+"Oensingen",
+"SO"
+],
+[
+"Les Traîne-Gourdins",
+"1304",
+"Cossonay",
+"VD"
+],
+[
+"LG Oberbaselbiet / BTV Sissach",
+"4466",
+"Ormalingen",
+"BL"
+],
+[
+"LGB Athletic club",
+"1208",
+"Genève",
+"GE"
+],
+[
+"LGB Benken",
+"9126",
+"Necker",
+"SG"
+],
+[
+"LGB Bodensee",
+"9313",
+"Muolen",
+"SG"
+],
+[
+"LGKE Küsnacht-Erlenbach",
+"8004",
+"Zürich",
+"ZH"
+],
+[
+"LK Zug",
+"6312",
+"Steinhausen",
+"ZG"
+],
+[
+"LLT Oberwallis",
+"3932",
+"Visperterminen",
+"VS"
+],
+[
+"LR Ebikon",
+"6006",
+"Luzern",
+"LU"
+],
+[
+"LR Gettnau",
+"6003",
+"Luzern",
+"LU"
+],
+[
+"LR Nottwil",
+"6207",
+"Nottwil",
+"LU"
+],
+[
+"LR TV Appenzell",
+"9050",
+"Appenzell",
+"AI"
+],
+[
+"LR Wohlen",
+"5610",
+"Wohlen 2",
+"AG"
+],
+[
+"LSC Wil",
+"9512",
+"Rossrüti",
+"SG"
+],
+[
+"LSV Kloten-Basserdorf",
+"8302",
+"Kloten",
+"ZH"
+],
+[
+"LV Albis",
+"6467",
+"Schattdorf",
+"UR"
+],
+[
+"LV FrenkeFortuna",
+"4418",
+"Reigoldswil",
+"BL"
+],
+[
+"LV Fricktal",
+"5074",
+"Eiken",
+"AG"
+],
+[
+"LV Huttwil",
+"4955",
+"Gondiswil",
+"BE"
+],
+[
+"LV Langenthal",
+"4900",
+"Langenthal",
+"BE"
+],
+[
+"LV Thun",
+"3608",
+"Thun",
+"BE"
+],
+[
+"LV Visp",
+"3930",
+"Visp",
+"VS"
+],
+[
+"LV Wettingen-Baden",
+"5430",
+"Wettingen",
+"AG"
+],
+[
+"LV Winterthur",
+"8408",
+"Winterthur",
+"ZH"
+],
+[
+"LV Zürcher Oberland",
+"8620",
+"Wetzikon",
+"ZH"
+],
+[
+"LZ Lostorf",
+"4654",
+"Lostorf",
+"SO"
+],
+[
+"Läuferriege Mosnang",
+"9630",
+"Wattwil",
+"SG"
+],
+[
+"Läuferriege TV Mauritius Emmen",
+"6014",
+"Luzern",
+"LU"
+],
+[
+"Maun.Ten St. Moritz Racing Team",
+"7524",
+"Zuoz",
+"GR"
+],
+[
+"Michael Sommer Running",
+"8912",
+"Obfelden",
+"ZH"
+],
+[
+"NLZ Bern/Magglingen",
+"3014",
+"Bern",
+"BE"
+],
+[
+"NLZ Nordwestschweiz",
+"4051",
+"Basel",
+"BS"
+],
+[
+"NLZ Ostschweiz",
+"9032",
+"Engelburg",
+"SG"
+],
+[
+"NLZ Zürich",
+"8048",
+"Zürich",
+"ZH"
+],
+[
+"Panther Active Universe - PAU",
+"8055",
+"Zürich",
+"ZH"
+],
+[
+"PluSport Behindertensport Schweiz",
+"8604",
+"Volketswil",
+"ZH"
+],
+[
+"run + more 2025",
+"9472",
+"Grabs",
+"SG"
+],
+[
+"Runner's Club Bellinzona",
+"6500",
+"Bellinzona",
+"TI"
+],
+[
+"Running Collonge-Bellerive",
+"1245",
+"Collonge-Bellerive",
+"GE"
+],
+[
+"Running Team Prilly",
+"1033",
+"Cheseaux-Lausanne",
+"VD"
+],
+[
+"runningtrainer.ch",
+"3422",
+"Alchenflüh",
+"BE"
+],
+[
+"SA Bellinzona",
+"6500",
+"Bellinzona",
+"TI"
+],
+[
+"SA Bulle",
+"1663",
+"Prigny",
+"FR"
+],
+[
+"SAG Gordola",
+"6598",
+"Tenero",
+"TI"
+],
+[
+"SAL Lugano",
+"6962",
+"Viganello",
+"TI"
+],
+[
+"SAM Massagno",
+"6908",
+"Massagno",
+"TI"
+],
+[
+"SATUS Athl. Genève",
+"1224",
+"Chêne-Bougeries",
+"GE"
+],
+[
+"Satus Biel-Bienne",
+"2502",
+"Biel-Bienne",
+"BE"
+],
+[
+"SATUS Gränichen",
+"5722",
+"Gränichen",
+"AG"
+],
+[
+"SATUS Rothrist LA",
+"4852",
+"Rothrist",
+"AG"
+],
+[
+"SATUS Zürich-Oerlikon",
+"8050",
+"Zürich",
+"ZH"
+],
+[
+"SAV Vacallo",
+"6833",
+"Vacallo",
+"TI"
+],
+[
+"SC Diemberg",
+"8633",
+"Wolfhausen",
+"SG"
+],
+[
+"SC Liestal",
+"4450",
+"Sissach",
+"BL"
+],
+[
+"SEP Olympic La Chaux-de-Fonds",
+"2000",
+"Neuchâtel",
+"NE"
+],
+[
+"SFG Airolo",
+"6780",
+"Airolo",
+"TI"
+],
+[
+"SFG Biasca",
+"6710",
+"Biasca",
+"TI"
+],
+[
+"SFG Chiasso",
+"6830",
+"Chiasso",
+"TI"
+],
+[
+"SFG Conthey",
+"1964",
+"Conthey",
+"VS"
+],
+[
+"SFG Mendrisio",
+"6596",
+"Gordola",
+"TI"
+],
+[
+"SFG Stabio",
+"6854",
+"S. Pietro",
+"TI"
+],
+[
+"SG St-Maurice",
+"1890",
+"St-Maurice",
+"VS"
+],
+[
+"SK Langnau",
+"3550",
+"Langnau i.E.",
+"BE"
+],
+[
+"Société de Gymnastique de Saint-Prex",
+"1132",
+"Lully VD",
+"VD"
+],
+[
+"Sportclub Biel-Benken",
+"2947",
+"Charmoille",
+"JU"
+],
+[
+"Sportverein Alterswil",
+"1715",
+"Alterswil FR",
+"FR"
+],
+[
+"SSC Athletics",
+"8051",
+"Zürich",
+"ZH"
+],
+[
+"SSC Langnau Sihltaler Sportclub",
+"8135",
+"Langnau am Albis",
+"ZH"
+],
+[
+"Stade Genève",
+"1211",
+"Genève 6",
+"GE"
+],
+[
+"Stade Lausanne Athlétisme",
+"1007",
+"Lausanne",
+"VD"
+],
+[
+"STB Leichtathletik",
+"3006",
+"Bern",
+"BE"
+],
+[
+"STV Altbüron",
+"6247",
+"Schötz",
+"LU"
+],
+[
+"STV Au SG",
+"9430",
+"St. Margrethen SG",
+"SG"
+],
+[
+"STV Auw",
+"5644",
+"Auw",
+"AG"
+],
+[
+"STV Balgach",
+"9436",
+"Balgach",
+"SG"
+],
+[
+"STV Ballwil",
+"6275",
+"Ballwil",
+"LU"
+],
+[
+"STV Beinwil/Freiamt",
+"5630",
+"Muri AG",
+"AG"
+],
+[
+"STV Berg",
+"8572",
+"Berg",
+"TG"
+],
+[
+"STV Beromünster",
+"6215",
+"Beromünster",
+"LU"
+],
+[
+"STV Einsiedeln",
+"8840",
+"Einsiedeln",
+"SZ"
+],
+[
+"STV Eschenbach SG",
+"8733",
+"Eschenbach SG",
+"SG"
+],
+[
+"STV Gampel",
+"3945",
+"Gampel",
+"VS"
+],
+[
+"STV Gams",
+"9473",
+"Gams",
+"SG"
+],
+[
+"STV Gersau",
+"6442",
+"Gersau",
+"SZ"
+],
+[
+"STV Grabs",
+"9472",
+"Grabs",
+"SG"
+],
+[
+"STV Gränichen LA",
+"5033",
+"Buchs AG",
+"AG"
+],
+[
+"STV Güttingen",
+"8594",
+"Güttingen",
+"TG"
+],
+[
+"STV Hägendorf",
+"4600",
+"Olten",
+"SO"
+],
+[
+"STV Höri",
+"8181",
+"Höri",
+"ZH"
+],
+[
+"STV Illhart-Sonterswil",
+"8266",
+"Steckborn",
+"TG"
+],
+[
+"STV Kriessern",
+"9451",
+"Kriessern",
+"SG"
+],
+[
+"STV Küssnacht",
+"6403",
+"Küssnacht am Rigi",
+"SZ"
+],
+[
+"STV Lachen",
+"8610",
+"Uster",
+"ZH"
+],
+[
+"STV Malters",
+"6102",
+"Malters",
+"LU"
+],
+[
+"STV Marbach SG",
+"9437",
+"Marbach SG",
+"SG"
+],
+[
+"STV Neukirch-Egnach",
+"9314",
+"Steinebrunn",
+"TG"
+],
+[
+"STV Oberriet-Eichenwies",
+"9462",
+"Montlingen",
+"SG"
+],
+[
+"STV Oensingen",
+"4702",
+"Oensingen",
+"SO"
+],
+[
+"STV Pfäffikon-Freienbach",
+"8807",
+"Freienbach",
+"SZ"
+],
+[
+"STV Roggliswil",
+"4919",
+"Reisiswil",
+"LU"
+],
+[
+"STV Sempach",
+"6204",
+"Sempach",
+"LU"
+],
+[
+"STV St. Margrethen",
+"9430",
+"St. Margrethen SG",
+"SG"
+],
+[
+"STV Sumiswald",
+"3454",
+"Sumiswald",
+"BE"
+],
+[
+"STV Tuggen",
+"8856",
+"Tuggen",
+"SZ"
+],
+[
+"STV Wangen SZ",
+"8855",
+"Wangen SZ",
+"SZ"
+],
+[
+"STV Welschenrohr",
+"4712",
+"Laupersdorf",
+"SO"
+],
+[
+"STV Wiedikon",
+"8041",
+"Zürich",
+"ZH"
+],
+[
+"STV Willisau",
+"6130",
+"Willisau",
+"LU"
+],
+[
+"STV Wollerau-Bäch",
+"8807",
+"Freienbach",
+"SZ"
+],
+[
+"STV Wägital",
+"8857",
+"Vorderthal",
+"SZ"
+],
+[
+"SVAM Muggio",
+"6837",
+"Caneggio/TI",
+"TI"
+],
+[
+"SVD athletics",
+"9444",
+"Diepoldsau",
+"SG"
+],
+[
+"Swiss Lauftreff",
+"6210",
+"Sursee",
+"LU"
+],
+[
+"swiss masters athletics",
+"8535",
+"Herdern",
+"TG"
+],
+[
+"swiss masters running",
+"1797",
+"Münchenwiler",
+"BE"
+],
+[
+"T-R-T Athlétisme Monthey",
+"1870",
+"Monthey",
+"VS"
+],
+[
+"Team FitSport.ch",
+"6064",
+"Kerns",
+"OW"
+],
+[
+"Termen athletics",
+"3912",
+"Termen",
+"VS"
+],
+[
+"TG Hütten",
+"8620",
+"Wetzikon ZH",
+"ZH"
+],
+[
+"Together Athletics Club",
+"1256",
+"Troinex",
+"GE"
+],
+[
+"Track Club Davos",
+"7270",
+"Davos Platz",
+"GR"
+],
+[
+"TSV 2001 Rotkreuz",
+"6343",
+"Rotkreuz",
+"ZG"
+],
+[
+"TSV Düdingen",
+"3186",
+"Düdingen",
+"FR"
+],
+[
+"TSV Engelburg",
+"9053",
+"Teufen AR",
+"SG"
+],
+[
+"TSV Fortitudo Gossau",
+"9000",
+"St. Gallen",
+"SG"
+],
+[
+"TSV Frauenkappelen",
+"3202",
+"Frauenkappelen",
+"BE"
+],
+[
+"TSV Galgenen",
+"8854",
+"Galgenen",
+"SZ"
+],
+[
+"TSV Guntershausen",
+"8355",
+"Aadorf",
+"TG"
+],
+[
+"TSV Gurmels",
+"3212",
+"Gurmels",
+"FR"
+],
+[
+"TSV Heitenried",
+"1714",
+"Heitenried",
+"FR"
+],
+[
+"TSV Hinterforst",
+"9452",
+"Hinterforst",
+"SG"
+],
+[
+"TSV Kestenholz",
+"4703",
+"Kestenholz",
+"SO"
+],
+[
+"TSV Mümliswil-Ramiswil",
+"4717",
+"Mümliswil",
+"SO"
+],
+[
+"TSV Oberkirch",
+"6214",
+"Schenkon",
+"LU"
+],
+[
+"TSV Rothenburg athletics",
+"6026",
+"Rain",
+"LU"
+],
+[
+"TSV St. Antoni",
+"1713",
+"St. Antoni",
+"FR"
+],
+[
+"TSV Steinen",
+"6422",
+"Steinen SZ",
+"SZ"
+],
+[
+"TSV Vechigen",
+"3068",
+"Utzigen",
+"BE"
+],
+[
+"TSV Wünnewil",
+"3184",
+"Wünnewil",
+"FR"
+],
+[
+"Turn- und Sportverein Wangen an der Aare",
+"3380",
+"Wangen an der Aare",
+"BE"
+],
+[
+"Turnverein Bad Ragaz",
+"7310",
+"Bad Ragaz",
+"SG"
+],
+[
+"Turnverein Kehrsatz",
+"3122",
+"Kehrsatz",
+"BE"
+],
+[
+"Turnverein Siebnen",
+"8854",
+"Siebnen",
+"SZ"
+],
+[
+"Turnverein Triesen",
+"9495",
+"Triesen",
+""
+],
+[
+"Turnverein Walenstadt",
+"8880",
+"Walenstadt",
+"SG"
+],
+[
+"Turnverein Wiesendangen",
+"8542",
+"Wiesendangen",
+"ZH"
+],
+[
+"TV Aarberg Leichtathletik",
+"3270",
+"Aarberg",
+"BE"
+],
+[
+"TV Altstetten-Zürich",
+"8048",
+"Zürich",
+"ZH"
+],
+[
+"TV Arlesheim",
+"4144",
+"Arlesheim",
+"BL"
+],
+[
+"TV Attiswil",
+"4524",
+"Balmberg",
+"SO"
+],
+[
+"TV Azmoos",
+"9478",
+"Azmoos",
+"SG"
+],
+[
+"TV Bettlach",
+"2544",
+"Bettlach",
+"SO"
+],
+[
+"TV Biezwil",
+"3427",
+"Utzenstorf",
+"BE"
+],
+[
+"TV Bolligen",
+"3065",
+"Bolligen",
+"BE"
+],
+[
+"TV Brunnen",
+"6440",
+"Brunnen",
+"SZ"
+],
+[
+"TV Buchs AG",
+"5018",
+"Erlinsbach",
+"AG"
+],
+[
+"TV Buchs SG",
+"9470",
+"Buchs",
+"SG"
+],
+[
+"TV Buttikon-Schübelbach",
+"8645",
+"Jona",
+"SG"
+],
+[
+"TV Bösingen",
+"3178",
+"Bösingen",
+"FR"
+],
+[
+"TV Bürglen",
+"6462",
+"Seedorf UR",
+"UR"
+],
+[
+"TV Cham 1884",
+"6330",
+"Cham",
+"ZG"
+],
+[
+"TV Dietlikon",
+"8602",
+"Wangen",
+"ZH"
+],
+[
+"TV Dägerlen",
+"8471",
+"Bergen (Dägerlen)",
+"ZH"
+],
+[
+"TV Egg",
+"8132",
+"Egg",
+"ZH"
+],
+[
+"TV Eschen-Mauren",
+"9492",
+"Eschen",
+""
+],
+[
+"TV Eschlikon",
+"8360",
+"Eschlikon",
+"TG"
+],
+[
+"TV Fraubrunnen",
+"3312",
+"Fraubrunnen",
+"BE"
+],
+[
+"TV Grenchen",
+"2540",
+"Grenchen",
+"SO"
+],
+[
+"TV Gretzenbach",
+"5013",
+"Niedergösgen",
+"SO"
+],
+[
+"TV Grosswangen",
+"6022",
+"Grosswangen",
+"LU"
+],
+[
+"TV Hausen a. A.",
+"6330",
+"Cham",
+"ZG"
+],
+[
+"TV Herisau",
+"9100",
+"Herisau",
+"AR"
+],
+[
+"TV Herzogenbuchsee",
+"3360",
+"Herzogenbuchsee",
+"BE"
+],
+[
+"TV Hombrechtikon",
+"8634",
+"Hombrechtikon",
+"ZH"
+],
+[
+"TV Horgen",
+"8810",
+"Horgen",
+"ZH"
+],
+[
+"TV Ibach",
+"6438",
+"Ibach",
+"SZ"
+],
+[
+"TV Inwil",
+"6036",
+"Dierikon",
+"LU"
+],
+[
+"TV Kilchberg",
+"8038",
+"Zürich",
+"ZH"
+],
+[
+"TV Konolfingen Athletics",
+"3110",
+"Konolfingen",
+"BE"
+],
+[
+"TV Lyss",
+"3250",
+"Lyss",
+"BE"
+],
+[
+"TV Länggasse Bern",
+"3292",
+"Busswil BE",
+"BE"
+],
+[
+"TV Lütisburg",
+"9604",
+"Oberrindal",
+"SG"
+],
+[
+"TV Lützelflüh Athletics",
+"3534",
+"Signau",
+"BE"
+],
+[
+"TV Maur",
+"8124",
+"Maur",
+"ZH"
+],
+[
+"TV Meiringen",
+"6086",
+"Hasliberg Reuti",
+"BE"
+],
+[
+"TV Mels",
+"7320",
+"Sargans",
+"SG"
+],
+[
+"TV Muttenz athletics",
+"4132",
+"Muttenz",
+"BL"
+],
+[
+"TV Naters",
+"3904",
+"Naters",
+"VS"
+],
+[
+"TV NS Winterthur",
+"8408",
+"Winterthur",
+"ZH"
+],
+[
+"TV Oberdiessbach",
+"3672",
+"Oberdiessbach",
+"BE"
+],
+[
+"TV Oberwangen",
+"3172",
+"Niederwangen",
+"BE"
+],
+[
+"TV Oerlikon",
+"8050",
+"Zürich",
+"ZH"
+],
+[
+"TV Ostermundigen",
+"3065",
+"Bolligen",
+"BE"
+],
+[
+"TV Otelfingen",
+"6436",
+"Muotathal",
+"SZ"
+],
+[
+"TV Plaffeien",
+"1716",
+"Oberschrot",
+"FR"
+],
+[
+"TV Pratteln Aktiv Sport",
+"4402",
+"Frenkendorf",
+"BL"
+],
+[
+"TV Reussbühl LA",
+"6003",
+"Luzern",
+"LU"
+],
+[
+"TV Richterswil",
+"8805",
+"Richterswil",
+"ZH"
+],
+[
+"TV Riehen",
+"4125",
+"Riehen",
+"BS"
+],
+[
+"TV Saanen-Gstaad",
+"3792",
+"Saanen",
+"BE"
+],
+[
+"TV Sarnen LA",
+"6055",
+"Alpnach Dorf",
+"OW"
+],
+[
+"TV Schaan / Leichtathletik",
+"9470",
+"Buchs SG",
+""
+],
+[
+"TV Schwarzenburg",
+"3150",
+"Schwarzenburg",
+"BE"
+],
+[
+"TV Schänis",
+"9620",
+"Lichtensteig",
+"SG"
+],
+[
+"TV Selzach",
+"4500",
+"Solothurn",
+"SO"
+],
+[
+"TV Spiez",
+"3700",
+"Spiez",
+"BE"
+],
+[
+"TV St. Gallen-Ost",
+"9016",
+"St. Gallen",
+"SG"
+],
+[
+"TV St. Peterzell",
+"9100",
+"Herisau",
+"SG"
+],
+[
+"TV Stein (AG)",
+"4332",
+"Stein / AG",
+"AG"
+],
+[
+"TV Sursee",
+"6004",
+"Luzern",
+"LU"
+],
+[
+"TV Tamins",
+"7015",
+"Tamins",
+"GR"
+],
+[
+"TV Teufen",
+"9053",
+"Teufen",
+"AR"
+],
+[
+"TV Thalwil",
+"8905",
+"Arni-Islisberg",
+"AG"
+],
+[
+"TV Thusis",
+"7430",
+"Thusis",
+"GR"
+],
+[
+"TV Unterseen",
+"3800",
+"Unterseen",
+"BE"
+],
+[
+"TV Uster",
+"8610",
+"Uster",
+"ZH"
+],
+[
+"TV Widnau",
+"9444",
+"Diepoldsau",
+"SG"
+],
+[
+"TV Wohlen AG",
+"5610",
+"Wohlen",
+"AG"
+],
+[
+"TV Wolhusen",
+"6110",
+"Wolhusen",
+"LU"
+],
+[
+"TV Wädenswil",
+"8820",
+"Wädenswil",
+"ZH"
+],
+[
+"TV Zofingen LA",
+"4814",
+"Bottenwil",
+"AG"
+],
+[
+"TVM Buchsi-Athletics",
+"3053",
+"Münchenbuchsee",
+"BE"
+],
+[
+"Unitas Malcantone",
+"6987",
+"Caslano",
+"TI"
+],
+[
+"US Ascona atletica",
+"6612",
+"Ascona",
+"TI"
+],
+[
+"US Yverdon",
+"1441",
+"Valeyres/Montagny",
+"VD"
+],
+[
+"USC Capriaschese",
+"6954",
+"Bigorio",
+"TI"
+],
+[
+"Verein Lauftreff beider Basel",
+"4058",
+"Basel",
+"BS"
+],
+[
+"Versoix Athlétisme",
+"1290",
+"Versoix",
+"GE"
+],
+[
+"VIGOR Ligornetto",
+"6853",
+"Ligornetto",
+"TI"
+],
+[
+"VIRTUS Locarno",
+"6601",
+"Locarno",
+"TI"
+],
+[
+"Vis Nova Agarone",
+"6594",
+"Contone",
+"TI"
+],
+[
+"Vom Stein Baden",
+"5415",
+"Rieden AG",
+"AG"
+],
+[
+"WingTsun-Running Bern",
+"3012",
+"Bern",
+"BE"
+]
+]
+}
