@@ -542,7 +542,8 @@ class Gazetteer:
             return [canton, town if hit else None, hit[0] if hit else None, hit[1] if hit else None]
         m = re.search(r"(?:^|\s)\(?([A-Z]{2})\)?\s*$", club)  # "TV Wohlen AG"
         code = m.group(1) if m and m.group(1) in CAPITALS else None
-        toks = geo_norm(club[:m.start()] if code else club).split()
+        raw = [w for w in re.split(r"[^0-9A-Za-z\u00c0-\u024f]+", club[:m.start()] if code else club) if geo_norm(w)]
+        toks = [geo_norm(w) for w in raw]
         code = canton or code  # a verified canton also picks between two towns of the same name
         for n in range(min(4, len(toks)), 0, -1):
             found = []
@@ -552,9 +553,13 @@ class Gazetteer:
                     continue
                 hit = self.swiss_place(gram, code)
                 if hit:
+                    if geo_norm(hit[3]) != gram:  # found under another name ("Sitten"): keep the club's own spelling
+                        hit = hit[:3] + (" ".join(raw[i:i + n]),) + hit[4:]
                     found.append(((bool(code) and hit[2] == code, hit[4]), hit))
             if found:
                 hit = max(found, key=lambda x: x[0])[1]
+                if code and hit[2] != code:  # "STV Wangen SZ": the canton in the name wins over a namesake elsewhere
+                    return [code, None, None, None]
                 return [hit[2], hit[3], hit[0], hit[1]]
         areas = cfg.get("areas") or {}
         for n in (3, 2, 1):

@@ -131,11 +131,12 @@ function home() {
   s.querySelector("input").focus();
 }
 
-function pbLanes(rows) {
+function pbLanes(rows, sex) {
+  const pts = (d, mark) => { const p = sex ? waPoints(d, sex, markValue(mark)) : null; return p ? `<small class="pts">${p} pts</small>` : ""; };
   return `<ul class="lanes">${rows.map(([d, mark, wind, date, meeting, loc, hand]) => `
     <li class="lane">
       <span class="ev">${esc(dName(d))}</span>
-      <span class="mk">${esc(mark)}${D(d)[4] && wind !== null ? `<small>${fmtWind(wind)}</small>` : ""}${hand ? `<small>manuel</small>` : ""}</span>
+      <span class="mk">${esc(mark)}${D(d)[4] && wind !== null ? `<small>${fmtWind(wind)}</small>` : ""}${hand ? `<small>manuel</small>` : ""}${pts(d, mark)}</span>
       <span class="where">${fmtDate(date)}, ${esc(meeting)}${loc ? `, ${esc(loc)}` : ""}</span>
     </li>`).join("")}</ul>`;
 }
@@ -220,8 +221,8 @@ async function profile(id) {
     </section>
     <h2>Records personnels</h2>
     ${a.pb.length ? `<div class="cols">
-      ${out.length ? `<div><h3>Plein air</h3>${pbLanes(out)}</div>` : ""}
-      ${ins.length ? `<div><h3>En salle</h3>${pbLanes(ins)}</div>` : ""}
+      ${out.length ? `<div><h3>Plein air</h3>${pbLanes(out, a.s)}</div>` : ""}
+      ${ins.length ? `<div><h3>En salle</h3>${pbLanes(ins, a.s)}</div>` : ""}
     </div>` : `<p class="empty">Aucune performance régulière.</p>`}
     ${strongEvent(a, rk, geo)}
     ${limitsBlock(a, plan, cad)}
@@ -263,11 +264,12 @@ async function profile(id) {
     const rows = all.slice(0, shown);
     const showWind = rows.some(r => D(r[0])[4] && r[3] !== null);
     app.querySelector("#res").innerHTML = rows.length ? `<div class="tbl-wrap"><table>
-      <thead><tr><th>Date</th><th>Épreuve</th><th class="r">Perf.</th>${showWind ? `<th class="r">Vent</th>` : ""}<th>Rang</th><th>Compétition</th><th class="hide-s">Lieu</th><th class="hide-s">Club</th></tr></thead>
-      <tbody>${rows.map(([d, date, mark, wind, place, round, meet, loc, club, ass]) => `<tr>
+      <thead><tr><th>Date</th><th>Épreuve</th><th class="r">Perf.</th>${showWind ? `<th class="r">Vent</th>` : ""}<th class="r hide-s" title="Points World Athletics">Pts</th><th>Rang</th><th>Compétition</th><th class="hide-s">Lieu</th><th class="hide-s">Club</th></tr></thead>
+      <tbody>${rows.map(([d, date, mark, wind, place, round, meet, loc, club, ass, value]) => `<tr>
         <td class="dt">${fmtDate(date)}</td><td>${esc(dName(d))}${D(d)[0] ? " (salle)" : ""}</td>
         <td class="mk r">${esc(mark)}${pbKey.has(`${d}|${date}|${mark}`) ? `<span class="tag pb">RP</span>` : ""}</td>
         ${showWind ? `<td class="r num">${D(d)[4] ? fmtWind(wind) : ""}${ass ? `<span class="tag w">vent</span>` : ""}</td>` : ""}
+        <td class="r num hide-s muted">${waPoints(d, a.s, value) ?? ""}</td>
         <td class="num">${place ?? ""}${round ? ` ${esc(round)}` : ""}</td><td>${esc(meet)}</td>
         <td class="hide-s">${esc(loc)}</td><td class="hide-s">${esc(club)}</td></tr>`).join("")}</tbody></table></div>
       ${all.length > shown ? `<p><button type="button" class="more">Afficher ${Math.min(100, all.length - shown)} résultats de plus (${all.length - shown} restants)</button></p>` : ""}`
@@ -397,6 +399,43 @@ async function cadresPage() {
     </section>` : ""}`;
 }
 
+/* ---------- World Athletics points ----------
+   Scoring Tables of World Athletics, 2025 edition: points = floor(a * (x + b)^2 + c), x in seconds, metres or points.
+   Coefficients from GlaivePro/IaafPoints (MIT licence, https://github.com/GlaivePro/IaafPoints), which reproduces the
+   official tables. Senior implements and hurdle heights only; no wind correction; indoor tables from 200 m up. */
+const WA = {"m":{"50m":[-9.2,95.8,0],"55m":[-10,78.9,0],"60m":[-10.7,68.6,0],"50mh":[-12.35,34.2,0],"55mh":[-13.35,30.07,0],"60mh":[-14.6,23.9,0],"100m":[-17,24.63,0],"200m":[-35.5,5.08,0],"200m_short":[-36,5.04,0],"300m":[-57.2,1.83,0],"300m_short":[-58,1.803,0],"400m":[-79,1.021,0],"400m_short":[-80.6,0.981,0],"500m":[-104,0.585,0],"500m_short":[-106,0.565,0],"600m":[-129.5,0.3857,0],"600m_short":[-131,0.39,0],"800m":[-182,0.198,0],"800m_short":[-184,0.1974,0],"1000m":[-237.5,0.1123,0],"1000m_short":[-240,0.1139,0],"1500m":[-385,0.04066,0],"1500m_short":[-386,0.042,0],"1mile":[-415,0.0351,0],"1mile_short":[-415,0.0369,0],"2000m":[-528,0.02181,0],"2000m_short":[-528,0.0226,0],"3000m":[-840,0.00815,0],"3000m_short":[-840,0.008322,0],"2miles":[-904.8,0.00703,0],"2miles_short":[-907,0.00721,0],"5000m":[-1440,0.002778,0],"5000m_short":[-1440,0.0029,0],"10000m":[-3150,0.000524,0],"110mh":[-25.8,7.66,0],"300mh":[-68,1.057,0],"400mh":[-95.5,0.546,0],"2000mSt":[-660,0.01023,0],"3000mSt":[-1020,0.004316,0],"5km":[-1440,0.002778,0],"10km":[-3150,0.000524,0],"15km":[-4868,0.0002162,0],"10miles":[-5250,0.0001852,0],"20km":[-6702,0.00010856,0],"half_marathon":[-7140,9.47e-05,0],"25km":[-8640,6.38e-05,0],"30km":[-10600,4.19e-05,0],"marathon":[-15300,2.01e-05,0],"100km":[-48600,1.765e-06,0],"high_jump":[11.534,32.29,-5000],"pole_vault":[39.39,3.042,-5000],"long_jump":[48.41,1.929,-5000],"triple_jump":[98.63,0.4611,-5000],"shot_put":[687.7,0.042172,-20000],"discus_throw":[2232.6,0.004007,-20000],"hammer_throw":[2649.4,0.0028462,-20000],"javelin_throw":[2886.8,0.0023974,-20000],"decathlon":[71170,9.7749e-07,-5000],"heptathlon":[53175,1.752e-06,-5000]},"f":{"50m":[-12.1,33.03,0],"55m":[-13.15,27.68,0],"60m":[-14,24.9,0],"50mh":[-15.3,16.2,0],"55mh":[-16.8,13.19,0],"60mh":[-18.2,11.16,0],"100m":[-22,9.92,0],"200m":[-45.5,2.242,0],"200m_short":[-47.5,1.962,0],"300m":[-77,0.7,0],"300m_short":[-79,0.6595,0],"400m":[-110,0.335,0],"400m_short":[-112,0.3224,0],"500m":[-145.5,0.1876,0],"500m_short":[-150.5,0.1714,0],"600m":[-180,0.129,0],"600m_short":[-190.35,0.1063,0],"800m":[-250,0.0688,0],"800m_short":[-264,0.0572,0],"1000m":[-330,0.0382,0],"1000m_short":[-340.4,0.03473,0],"1500m":[-540,0.0134,0],"1500m_short":[-540,0.01365,0],"1mile":[-580,0.01165,0],"1mile_short":[-585.5,0.01154,0],"2000m":[-750,0.006766,0],"2000m_short":[-752.2,0.00685,0],"3000m":[-1200,0.002539,0],"3000m_short":[-1200,0.00259,0],"2miles":[-1296.3,0.002157,0],"2miles_short":[-1296.3,0.002202,0],"5000m":[-2100,0.000808,0],"5000m_short":[-2100,0.000825,0],"10000m":[-4500,0.0001712,0],"100mh":[-30,3.98,0],"300mh":[-90.6,0.428,0],"400mh":[-130,0.208567,0],"2000mSt":[-932,0.003636,0],"3000mSt":[-1510,0.001323,0],"5km":[-2100,0.000808,0],"10km":[-4500,0.0001712,0],"15km":[-7289,5.95e-05,0],"10miles":[-7904,5.016e-05,0],"20km":[-10154,2.956e-05,0],"half_marathon":[-10798,2.596e-05,0],"25km":[-13020,1.782e-05,0],"30km":[-15960,1.178e-05,0],"marathon":[-23400,5.39e-06,0],"100km":[-61200,8.74e-07,0],"high_jump":[10.574,39.34,-5000],"pole_vault":[34.83,3.953,-5000],"long_jump":[49.24,1.966,-5000],"triple_jump":[105.53,0.4282,-5000],"shot_put":[657.53,0.0462,-20000],"discus_throw":[2227.3,0.0040277,-20000],"hammer_throw":[2540,0.0030965,-20000],"javelin_throw":[2214.9,0.004073,-20000],"heptathlon":[55990,1.581e-06,-5000],"pentathlon":[41033,2.9445e-06,-5000]}};
+const WA_FIELD = { Hoch: "high_jump", Stab: "pole_vault", Weit: "long_jump", Drei: "triple_jump" };
+const WA_THROW = { Kugel: ["shot_put", 7.26, 4], Diskus: ["discus_throw", 2, 1], Hammer: ["hammer_throw", 7.26, 4], Speer: ["javelin_throw", 800, 600] };
+const WA_ROAD = { "5 km Strasse": "5km", "10 km Strasse": "10km", "15 km Strasse": "15km", "10 Meilen Strasse": "10miles", "20 km Strasse": "20km",
+  Halbmarathon: "half_marathon", Marathon: "marathon", "1 Meile": "1mile", "2 Meilen": "2miles" };
+const WA_HURDLES = { M: { 60: 106.7, 110: 106.7, 400: 91.4 }, W: { 60: 83.8, 100: 83.8, 400: 76.2 } };
+function waKey(d, sex) {
+  const [indoor, label] = D(d), T = WA[sex === "W" ? "f" : "m"];
+  let m, key = null;
+  if (WA_ROAD[label]) key = WA_ROAD[label];
+  else if (WA_FIELD[label]) key = WA_FIELD[label];
+  else if ((m = label.match(/^(Kugel|Diskus|Hammer|Speer) ([\d.]+)/))) key = Math.abs(+m[2] - WA_THROW[m[1]][sex === "W" ? 2 : 1]) < 0.01 ? WA_THROW[m[1]][0] : null;
+  else if ((m = label.match(/^(\d+) mH ([\d.]+)/))) { const h = +m[2] < 3 ? +m[2] * 100 : +m[2]; key = Math.abs(h - (WA_HURDLES[sex === "W" ? "W" : "M"][m[1]] || 0)) < 0.5 ? `${m[1]}mh` : null; }
+  else if ((m = label.match(/^(\d+) m Steeple$/))) key = `${m[1]}mSt`;
+  else if (/^Zehnkampf/.test(label)) key = sex === "W" ? null : "decathlon";
+  else if (/^Siebenkampf/.test(label)) key = sex === "W" ? "heptathlon" : null;
+  else if (/^Fünfkampf/.test(label)) key = sex === "W" && indoor ? "pentathlon" : null;
+  else if ((m = label.match(/^([\d ]+) m$/))) { key = `${m[1].replace(/ /g, "")}m`; if (indoor && +m[1].replace(/ /g, "") >= 200 && T[`${key}_short`]) key += "_short"; }
+  return key && T[key] ? key : null;
+}
+const waCache = new Map();
+/* Points of a mark in event d, or null when World Athletics has no table for it. */
+function waPoints(d, sex, value) {
+  if (value === null || value === undefined) return null;
+  const ck = `${d}|${sex}`;
+  if (!waCache.has(ck)) waCache.set(ck, waKey(d, sex));
+  const key = waCache.get(ck);
+  if (!key) return null;
+  const [b, a, c] = WA[sex === "W" ? "f" : "m"][key], y = value + b;
+  if (b < 0 && y >= 0) return 0;
+  return Math.max(0, Math.floor(a * y * y + c));
+}
+
 /* ---------- clubs, cantons and regions ----------
    Data from build_site.py: geo.json (cantons, regions), clubs.json, club/<id>.json, canton/<XX>.json, region/<id>.json and
    rk/<xyz>.json (ranks of each active athlete). "Active" = an adult with a result in the last two seasons. */
@@ -463,8 +502,24 @@ async function clubsPage() {
 }
 
 async function clubPage(cid) {
-  const [c, geo] = await Promise.all([optJSON(`club/${cid}.json`), optJSON("geo.json")]);
+  const [c, geo, plan] = await Promise.all([optJSON(`club/${cid}.json`), optJSON("geo.json"), optJSON("planner.json")]);
   if (!c || !geo) return notFound("Ce club n'a pas d'athlète majeur actif dans la base.");
+  // "almost there": athletes within 2 % of a Swiss championship limit they have not reached yet
+  const near = [];
+  ((plan && plan.championships) || []).filter(ch => ch.standards && ch.standards.kind === "limit").forEach(ch => {
+    c.a.forEach(([pid, name, by, sex, evs]) => {
+      if (eligible(ch.age || "", by, +ch.start.slice(0, 4)) === false) return;
+      evs.forEach(([d, sb, prev]) => {
+        const e = ch.standards.events.find(x => (x.labels[sex] || []).includes(D(d)[1]));
+        if (!e || !!D(d)[0] !== !!ch.indoor) return;
+        const target = markValue(e[sex]), marks = [sb, prev].map(markValue).filter(v => v !== null);
+        if (target === null || !marks.length) return;
+        const best = marks.reduce((x, y) => (sortv(d, y) < sortv(d, x) ? y : x)), gap = gapTo(d, best, target);
+        if (gap > 0 && gap / Math.abs(target) <= 0.02) near.push({ pid, name, by, d, best, text: e[sex], gap, rel: gap / Math.abs(target), ch });
+      });
+    });
+  });
+  near.sort((x, y) => x.rel - y.rel);
   document.title = `${c.n} – ${META.title}`;
   const canton = c.g && c.g[0], years = geo.years;
   const discs = [...new Set(c.a.flatMap(a => a[4].map(e => e[0])))].sort((x, y) => x - y);
@@ -483,6 +538,12 @@ async function clubPage(cid) {
     </div>
     <h2>Le club dans chaque épreuve</h2>
     <div id="cev"></div>
+    ${near.length ? `<h2>Tout près d'une limite</h2>
+    <div class="tbl-wrap"><table><thead><tr><th>Athlète</th><th>Épreuve</th><th class="r">Meilleure perf.</th><th>Limite</th><th>Écart</th><th></th></tr></thead>
+    <tbody>${near.map(n => `<tr><td><a href="${athleteHref(n.pid, n.name)}">${esc(n.name)}</a> <span class="muted num">${n.by}</span></td><td>${esc(evLabel(n.d))}</td>
+      <td class="mk r">${fmtVal(n.best, n.d)}</td><td>${esc(n.ch.name)} <span class="num">${esc(n.text)}</span></td><td>à <strong class="num">${fmtGap(n.d, n.gap)}</strong></td>
+      <td><a href="#/plan/${n.pid}">Prochaines courses</a></td></tr>`).join("")}</tbody></table></div>
+    <p class="note">Athlètes à 2 % ou moins d'une limite des championnats suisses qu'ils n'ont pas encore réalisée, d'après leur meilleure performance de cette saison ou de la précédente. Limites de la dernière édition publiée, à titre indicatif. « Prochaines courses » ouvre le planificateur pour l'athlète.</p>` : ""}
     <h2>Athlètes</h2>
     <div id="cat"></div>
     <p class="note">Athlètes majeurs avec un résultat depuis ${Math.min(...years) - 1}, rattachés à leur dernier club connu ; les moins de ${META.min_age} ans ne sont pas affichés. Rangs et meilleures performances : ${seasonsLabel(geo)}, chronométrage électronique et vent régulier. Le rang du club est celui de son meilleur athlète parmi les clubs classés dans l'épreuve.${canton && !c.g[4] ? " Le canton est déduit du nom du club et n'a pas encore été vérifié." : ""}</p>
@@ -614,8 +675,12 @@ async function unitPage(kind, key) {
 
 /* ---------- profile: strongest event, limits, rivals, meetings that worked ---------- */
 function strongEvent(a, rk, geo) {
-  const row = rk && rk.r && (rk.r.find(r => r[3] >= 10) || rk.r[0]);
+  // the event of the season worth the most World Athletics points, else the best Swiss rank
+  const ptsOf = r => { const sb = a.sb.find(s => s[0] === r[0] && s[1] === r[1]); return sb ? waPoints(r[0], a.s, sb[3]) : null; };
+  const scored = rk && rk.r ? rk.r.map(r => [ptsOf(r), r]).filter(x => x[0]).sort((x, y) => y[0] - x[0]) : [];
+  const row = scored.length ? scored[0][1] : rk && rk.r && (rk.r.find(r => r[3] >= 10) || rk.r[0]);
   if (!row) return "";
+  const top = a.r.reduce((b, r) => { const p = r[9] ? null : waPoints(r[0], a.s, r[10]); return p && (!b || p > b.p) ? { p, r } : b; }, null);
   const [d, season, nat, natN, can, canN, club, clubN] = row;
   const legal = a.r.filter(r => r[0] === d && !r[9] && r[10] !== null);
   const inSeason = legal.filter(r => r[1].startsWith(String(season))).map(r => r[10]).sort((x, y) => sortv(d, x) - sortv(d, y));
@@ -632,14 +697,18 @@ function strongEvent(a, rk, geo) {
         ${can ? stat(ordinal(can), `${cName ? `<a href="#/canton/${canton}">${esc(cName)}</a>` : "dans le canton"}<br><span class="muted">sur ${canN}</span>`) : ""}
         ${club ? stat(ordinal(club), `<a href="${clubHref(a.c)}">dans le club</a><br><span class="muted">sur ${clubN}</span>`) : ""}
         ${cur ? stat(esc(cur[2]), `meilleure perf. ${season}${pb && pb[1] === cur[2] ? `<br><span class="win">record personnel</span>` : ""}`) : ""}
+        ${scored.length ? stat(fmtInt(scored[0][0]), `points World Athletics<br><span class="muted">pour cette performance</span>`) : ""}
       </div>
       <ul class="plain facts-list">
         ${pb ? `<li>Record personnel <strong class="num">${esc(pb[1])}</strong> <span class="muted">le ${fmtDate(pb[3])}, ${esc(pb[4])}</span></li>` : ""}
         ${cur && prev ? `<li>Par rapport à ${season - 1} (<span class="num">${esc(prev[2])}</span>) : ${deltaCell(d, cur[2], prev[2])}</li>` : ""}
         ${inSeason.length ? `<li><strong class="num">${inSeason.length}</strong> performance${inSeason.length > 1 ? "s" : ""} en ${season}${top3.length === 3 ? `, moyenne des trois meilleures <strong class="num">${fmtVal(avg, d)}</strong>` : ""}</li>` : ""}
+        ${top ? `<li>Meilleure performance de la carrière, toutes épreuves confondues : <strong class="num">${fmtInt(top.p)} pts</strong> <span class="muted">${esc(top.r[2])} en ${esc(evLabel(top.r[0]))}, le ${fmtDate(top.r[1])}</span></li>` : ""}
+        ${scored.length > 1 ? `<li>Autres épreuves de ${season} : ${scored.slice(1, 4).map(([p, r]) => `${esc(evLabel(r[0]))} <span class="num">${fmtInt(p)} pts</span>`).join(", ")}</li>` : ""}
         ${bestSeason && sbs.length > 1 ? `<li>${sbs.length} saisons dans l'épreuve, la meilleure en <strong class="num">${bestSeason[1]}</strong> (<span class="num">${esc(bestSeason[2])}</span>)</li>` : ""}
       </ul>
-    </div>`;
+    </div>
+    ${scored.length ? `<p class="note">Le point fort est l'épreuve de la saison qui vaut le plus de points. Points d'après les tables de cotation 2025 de World Athletics, sans correction de vent ; engins et haies des catégories adultes uniquement.</p>` : ""}`;
 }
 
 function rivalsBlock(id, rk) {
@@ -679,12 +748,14 @@ function limitsBlock(a, plan, cad) {
     out.push({ set, d: best.d, text, best, win, gap, rel: gap / Math.abs(target), done: !!win && gap <= 0 });
   }));
   if (!out.length) return "";
-  // per event: what is reached, then the next two steps
+
   const shown = [];
   [...new Set(out.map(o => D(o.d)[1]))].forEach(label => {
     const rows = out.filter(o => D(o.d)[1] === label).sort((x, y) => x.rel - y.rel);
-    if (rows[0].rel > 0.12) return;  // nothing within reach in this event
-    shown.push(...rows.filter(o => o.gap <= 0), ...rows.filter(o => o.gap > 0).slice(0, 2));
+    // what is reached, then the next step if it is within 6 %; events not run for two seasons are left out
+    const recent = a.r.some(r => D(r[0])[1] === label && +r[1].slice(0, 4) >= new Date().getFullYear() - 1);
+    if (!recent) return;
+    shown.push(...rows.filter(o => o.gap <= 0), ...rows.filter(o => o.gap > 0 && o.rel <= 0.06).slice(0, 1));
   });
   if (!shown.length) return "";
   return `<h2>Où j'en suis des limites</h2>

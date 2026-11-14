@@ -69,7 +69,11 @@ the site from the stored data, without downloading anything.
   (Swiss championships, Swiss Starters, international standards), the athletes ranked just before and after, and
   the meetings where personal bests were set. Swiss Olympic Talent Cards are not shown: they are awarded on an
   assessment (PISTE), there is no published mark to compare with.
-* **Club coaches**: `#/club/<id>` lists every active adult athlete of the club with this season's best, last
+  Every result carries its World Athletics points (2025 scoring tables, coefficients from GlaivePro/IaafPoints,
+  MIT licence; no wind correction, senior implements only), which is how the strongest event is chosen.
+* **Club coaches**: the club page opens with the athletes within 2 % of a Swiss championship limit, each with a
+  link to the planner for the next races.
+  Then: `#/club/<id>` lists every active adult athlete of the club with this season's best, last
   season's, the gain, the personal best and the Swiss rank, and the club's rank in each event (the rank of its best
   athlete among clubs). Athletes under 18 are not on the site, so youth squads are missing by design.
 * **Swiss Athletics, cantonal associations**: `#/cantons` compares the cantons and the three regions of the regional

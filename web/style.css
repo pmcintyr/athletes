@@ -233,6 +233,8 @@ td.bar span { position: relative; }
 .feedback { margin-top: 28px; padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: baseline; font-size: 15px; }
 .feedback .muted { font-size: 13px; flex-basis: 100%; }
 
+.lane .mk small.pts { color: var(--muted); }
+
 /* footer */
 .foot { border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; padding: 22px 0 36px; }
 .foot p { margin: 0 0 6px; max-width: 80ch; }
