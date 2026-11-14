@@ -60,24 +60,37 @@ def tables(html):
 
 
 with httpx.Client(headers=UA, timeout=40, follow_redirects=True) as c:
-    html = page(c, "https://worldathletics.org/competition/calendar-results", {"startDate": "2026-05-25", "endDate": "2026-05-31"})
-    if html:
-        tables(html)
-        next_data(html)
-    html = page(c, "https://worldathletics.org/competitions/world-athletics-continental-tour")
-    if html:
-        soup = tables(html)
-        next_data(html)
-        print("links to documents:", [(a.get_text(" ", strip=True)[:60], a.get("href")) for a in soup.find_all("a", href=True)
-                                      if re.search(r"\.pdf|/download|requirements|calendar", a["href"], re.I)][:30])
-    html = page(c, "https://www.swiss-athletics.ch/vereinsfinder/")
-    if html:
-        soup = BeautifulSoup(html, "lxml")
-        more = [a for a in soup.find_all("a", href=True) if "kochclubfinder" in a["href"]]
-        print("club finder links:", len(more), [(" ".join(a.get_text(" ").split())[:30], a["href"][:400]) for a in more[:3]])
-        hit = soup.find(string=re.compile("Aarau Track Club"))
-        node = hit.parent if hit else None
-        for _ in range(4):
-            if node is not None and node.parent is not None:
-                node = node.parent
-        print("club entry markup:", str(node)[:2500] if node is not None else "not found")
+    CAL = "https://worldathletics.org/competition/calendar-results"
+    html = page(c, CAL, {"startDate": "2026-05-25", "endDate": "2026-05-31"})
+    data = next_data(html) if html else None
+    if data:
+        ev = data["props"]["pageProps"]["initialEvents"]
+        for k in ("regions", "disciplines", "rankingCategories", "permitLevels", "competitionGroups"):
+            print(k, json.dumps(ev["options"][k], ensure_ascii=False)[:3000])
+    # do the filters and paging work from the address alone?
+    for params in ({"startDate": "2026-05-01", "endDate": "2026-08-31", "regionType": "area", "regionId": "10229630", "limit": "100", "offset": "100"},
+                   {"startDate": "2026-05-01", "endDate": "2026-08-31", "regionType": "area", "regionId": "10229630", "competitionGroupId": "8", "disciplineId": "5"},
+                   {"startDate": "2027-01-01", "endDate": "2027-12-31", "competitionGroupId": "8"}):
+        html = page(c, CAL, params)
+        m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html or "", re.S)
+        if m:
+            ev = json.loads(m.group(1))["props"]["pageProps"]["initialEvents"]
+            print("hits", ev["hits"], "returned", len(ev["results"]), "parameters", json.dumps({k: v for k, v in ev["parameters"].items() if v not in (None, False)}))
+            for e in ev["results"][:6]:
+                print("  ", e["id"], e["startDate"], e["rankingCategory"], "|", e["competitionGroup"], "|", e["name"], "|", e["venue"], "| results", e["hasResults"])
+    # one results page: Goldenes Oval Dresden (Silver) is in the first list; take the first Continental Tour meeting found
+    html = page(c, CAL, {"startDate": "2026-05-30", "endDate": "2026-05-31"})
+    m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html or "", re.S)
+    pick = None
+    if m:
+        for e in json.loads(m.group(1))["props"]["pageProps"]["initialEvents"]["results"]:
+            if "Continental Tour" in (e["competitionGroup"] or "") and e["hasResults"]:
+                pick = e
+                break
+    if pick:
+        print("results page for", pick["name"], pick["id"])
+        html = page(c, f"{CAL}/results/{pick['id']}")
+        if html:
+            soup = tables(html)
+            d = next_data(html)
+            print("headings:", [" ".join(h.get_text(" ").split())[:60] for h in soup.find_all(["h1", "h2", "h3"])][:30])

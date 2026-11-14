@@ -1,0 +1,40 @@
+# Reads the list of member clubs (name, town, canton) from the Swiss Athletics club finder once a week and commits
+# clubs_swiss_athletics.json when it changed. The site uses it as the verified canton of each club at its next build.
+name: Club list
+
+on:
+  schedule:
+    - cron: "43 4 * * 1"  # Mondays, 05:43 in Switzerland (winter time)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["clubs_data.py", ".github/workflows/clubs.yml"]
+
+permissions:
+  contents: write  # commits clubs_swiss_athletics.json
+
+concurrency:
+  group: club-list
+  cancel-in-progress: false
+
+jobs:
+  clubs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python clubs_data.py
+      - name: Commit the list if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add clubs_swiss_athletics.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Club list $(date -u +%F)"
+            git pull --rebase --quiet && git push
+          fi
