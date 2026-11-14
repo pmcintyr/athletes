@@ -1,0 +1,210 @@
+{
+ "_about": "Clubs, cantons and regions. Each club is placed automatically from the town in its name (GeoNames list of Swiss places, optional geonamescache package). 'clubs' corrects or completes that: club name exactly as in Alabus -> canton code, or [canton, town]. 'areas' maps words found in club names (regions, valleys, adjectives) to a canton when no town is found. The build log lists the clubs it could not place. 'regions' are the three regions of the Swiss Athletics regional championships (West and Ost as in the 2023 and 2024 invitations, Zentral = the remaining cantons).",
+ "regions": [
+  {
+   "id": "ouest",
+   "name": "Suisse occidentale",
+   "short": "Ouest",
+   "cantons": [
+    "BE",
+    "FR",
+    "GE",
+    "JU",
+    "NE",
+    "VD",
+    "VS"
+   ],
+   "source": "https://www.ls-athletisme.ch/wp-content/uploads/2023/05/Ausschreibung_Regionen-West-2023_d-v27.4.pdf"
+  },
+  {
+   "id": "centre",
+   "name": "Suisse centrale",
+   "short": "Centre",
+   "cantons": [
+    "AG",
+    "BL",
+    "BS",
+    "LU",
+    "NW",
+    "OW",
+    "SO",
+    "SZ",
+    "UR",
+    "ZG"
+   ],
+   "source": ""
+  },
+  {
+   "id": "est",
+   "name": "Suisse orientale",
+   "short": "Est",
+   "cantons": [
+    "AI",
+    "AR",
+    "GL",
+    "GR",
+    "SG",
+    "SH",
+    "TG",
+    "TI",
+    "ZH"
+   ],
+   "source": "https://lcz.ch/wp-content/uploads/2024/06/Ausschreibung-RM-Ost-2024.pdf"
+  }
+ ],
+ "cantons": {
+  "AG": "Argovie",
+  "AI": "Appenzell Rhodes-Intérieures",
+  "AR": "Appenzell Rhodes-Extérieures",
+  "BE": "Berne",
+  "BL": "Bâle-Campagne",
+  "BS": "Bâle-Ville",
+  "FR": "Fribourg",
+  "GE": "Genève",
+  "GL": "Glaris",
+  "GR": "Grisons",
+  "JU": "Jura",
+  "LU": "Lucerne",
+  "NE": "Neuchâtel",
+  "NW": "Nidwald",
+  "OW": "Obwald",
+  "SG": "Saint-Gall",
+  "SH": "Schaffhouse",
+  "SO": "Soleure",
+  "SZ": "Schwytz",
+  "TG": "Thurgovie",
+  "TI": "Tessin",
+  "UR": "Uri",
+  "VD": "Vaud",
+  "VS": "Valais",
+  "ZG": "Zoug",
+  "ZH": "Zurich"
+ },
+ "areas": {
+  "nidwalden": "NW",
+  "obwalden": "OW",
+  "uri": "UR",
+  "glarus": "GL",
+  "glarnerland": "GL",
+  "thurgau": "TG",
+  "aargau": "AG",
+  "wallis": "VS",
+  "valais": "VS",
+  "oberwallis": "VS",
+  "ticino": "TI",
+  "tessin": "TI",
+  "graubunden": "GR",
+  "engadin": "GR",
+  "fricktal": "AG",
+  "freiamt": "AG",
+  "baselbiet": "BL",
+  "oberbaselbiet": "BL",
+  "seeland": "BE",
+  "oberaargau": "BE",
+  "emmental": "BE",
+  "toggenburg": "SG",
+  "rheintal": "SG",
+  "gruyere": "FR",
+  "veveyse": "FR",
+  "glane": "FR",
+  "sarine": "FR",
+  "singine": "FR",
+  "riviera": "VD",
+  "lavaux": "VD",
+  "gros de vaud": "VD",
+  "zurcher": "ZH",
+  "zurichsee": "ZH",
+  "berner": "BE",
+  "bernois": "BE",
+  "vaudois": "VD",
+  "genevois": "GE",
+  "neuchatelois": "NE",
+  "jurassien": "JU",
+  "fribourgeois": "FR",
+  "valaisan": "VS",
+  "luzerner": "LU",
+  "thurgauer": "TG",
+  "aargauer": "AG",
+  "bundner": "GR",
+  "schaffhauser": "SH",
+  "solothurner": "SO",
+  "appenzellerland": "AR",
+  "innerschwyz": "SZ",
+  "ausserschwyz": "SZ",
+  "zugerland": "ZG"
+ },
+ "clubs": {
+  "LC Kirchberg": [
+   "BE",
+   "Kirchberg"
+  ],
+  "STB Leichtathletik": [
+   "BE",
+   "Bern"
+  ],
+  "LC Scharnachtal": [
+   "BE",
+   "Reichenbach im Kandertal"
+  ],
+  "LC Brühl Leichtathletik": [
+   "SG",
+   "St. Gallen"
+  ],
+  "LC Turicum": [
+   "ZH",
+   "Zürich"
+  ],
+  "LAC TV Unterstrass": [
+   "ZH",
+   "Zürich"
+  ],
+  "LA Mutschellen": [
+   "AG",
+   "Berikon"
+  ],
+  "LV Fricktal": [
+   "AG",
+   "Frick"
+  ],
+  "LLT Oberwallis": [
+   "VS",
+   "Brig"
+  ],
+  "LV Zürcher Oberland": [
+   "ZH",
+   "Wetzikon"
+  ],
+  "Athletica Veveyse": [
+   "FR",
+   "Châtel-Saint-Denis"
+  ],
+  "CA Riviera": [
+   "VD",
+   "Vevey"
+  ],
+  "CS 13 Etoiles": [
+   "VS",
+   "Sion"
+  ],
+  "STV Kriessern": [
+   "SG",
+   "Oberriet"
+  ],
+  "VIGOR Ligornetto": [
+   "TI",
+   "Mendrisio"
+  ],
+  "TG Hütten": [
+   "ZH",
+   "Hütten"
+  ],
+  "LG Oberbaselbiet / BTV Sissach": [
+   "BL",
+   "Sissach"
+  ],
+  "LA Nidwalden": [
+   "NW",
+   "Stans"
+  ]
+ }
+}

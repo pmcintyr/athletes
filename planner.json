@@ -1,106 +1,126 @@
 {
- "_about": "Season planner (#/plan). Edit by hand, like cadres.json: championships an athlete can pick as objectives, their entry standards, and the cities offered as departure points. Dates and standards are copied from the sources given on each entry: check them against the official documents when they change. 'labels' are the Alabus discipline names (as in cadres.json); a standard whose label is not in the data is still shown in the table. 'venues' gives coordinates for places the automatic lookup (geonamescache) misses: the build log lists them under 'venues without coordinates'. 'omio': city ids come from Omio's Deep Link Creator file (affiliate programme); with both ids known the ticket link opens a prefilled search, and 'params' is added to every Omio link (affiliate marker).",
+ "_about": "Season planner (#/plan). Edit by hand, like cadres.json: championships an athlete can pick as objectives, their entry standards, and the cities offered as departure points. Dates and standards are copied from the sources given on each entry: check them against the official documents when they change. 'labels' are the Alabus discipline names (as in cadres.json); a standard whose label is not in the data is still shown in the table. 'venues' gives coordinates ([lat, lon] or, in Switzerland, [lat, lon, canton]) for places the automatic lookup (geonamescache) misses: the build log lists them under 'venues without coordinates'. 'omio': city ids come from Omio's Deep Link Creator file (affiliate programme); with both ids known the ticket link opens a prefilled search, and 'params' is added to every Omio link (affiliate marker). 'scope' is nat (Swiss championship) or intl; 'age' (U20, U23) hides a championship from athletes who are too old. Swiss championships carry their entry limits under 'standards' like the international ones.",
  "seasons": 3,
  "homes": [
   [
    "Lausanne",
    46.516,
-   6.633
+   6.633,
+   "VD"
   ],
   [
    "Genève",
    46.202,
-   6.146
+   6.146,
+   "GE"
   ],
   [
    "Bern",
    46.948,
-   7.447
+   7.447,
+   "BE"
   ],
   [
    "Zürich",
    47.367,
-   8.55
+   8.55,
+   "ZH"
   ],
   [
    "Basel",
    47.558,
-   7.573
+   7.573,
+   "BS"
   ],
   [
    "Fribourg",
    46.802,
-   7.151
+   7.151,
+   "FR"
   ],
   [
    "Neuchâtel",
    46.992,
-   6.931
+   6.931,
+   "NE"
   ],
   [
    "Sion",
    46.227,
-   7.356
+   7.356,
+   "VS"
   ],
   [
    "Biel/Bienne",
    47.137,
-   7.246
+   7.246,
+   "BE"
   ],
   [
    "Luzern",
    47.05,
-   8.306
+   8.306,
+   "LU"
   ],
   [
    "St. Gallen",
    47.424,
-   9.375
+   9.375,
+   "SG"
   ],
   [
    "Lugano",
    46.01,
-   8.96
+   8.96,
+   "TI"
   ],
   [
    "Winterthur",
    47.506,
-   8.724
+   8.724,
+   "ZH"
   ],
   [
    "Aarau",
    47.393,
-   8.044
+   8.044,
+   "AG"
   ],
   [
    "Yverdon-les-Bains",
    46.779,
-   6.641
+   6.641,
+   "VD"
   ],
   [
    "Bulle",
    46.618,
-   7.057
+   7.057,
+   "FR"
   ],
   [
    "Nyon",
    46.383,
-   6.24
+   6.24,
+   "VD"
   ],
   [
    "Thun",
    46.751,
-   7.622
+   7.622,
+   "BE"
   ],
   [
    "Chur",
    46.85,
-   9.533
+   9.533,
+   "GR"
   ],
   [
    "Delémont",
    47.365,
-   7.345
+   7.345,
+   "JU"
   ]
  ],
  "championships": [
@@ -114,7 +134,185 @@
    "lon": 9.375,
    "indoor": 1,
    "default": 1,
-   "source": "https://www.swiss-athletics.ch/wettkaempfe/veranstaltungen/meisterschaften/"
+   "source": "https://www.swiss-athletics.ch/wettkaempfe/veranstaltungen/meisterschaften/",
+   "scope": "nat",
+   "standards": {
+    "kind": "limit",
+    "window": [
+     "2026-01-01",
+     "2027-02-20"
+    ],
+    "source": "https://www.swiss-athletics.ch/fileadmin/user_upload/www.swiss-athletics-indoor-championships.ch/informationen/athletinnen-und-athleten/SM_Halle_Aktive_2026_Limiten_df.pdf",
+    "events": [
+     {
+      "name": "60 m",
+      "M": "7.15",
+      "W": "7.90",
+      "labels": {
+       "M": [
+        "60 m"
+       ],
+       "W": [
+        "60 m"
+       ]
+      },
+      "out": [
+       "100 m",
+       "11.00",
+       "12.30"
+      ]
+     },
+     {
+      "name": "200 m",
+      "M": "22.50",
+      "W": "25.80",
+      "labels": {
+       "M": [
+        "200 m"
+       ],
+       "W": [
+        "200 m"
+       ]
+      }
+     },
+     {
+      "name": "400 m",
+      "M": "50.00",
+      "W": "59.00",
+      "labels": {
+       "M": [
+        "400 m"
+       ],
+       "W": [
+        "400 m"
+       ]
+      }
+     },
+     {
+      "name": "800 m",
+      "M": "1:57.00",
+      "W": "2:20.00",
+      "labels": {
+       "M": [
+        "800 m"
+       ],
+       "W": [
+        "800 m"
+       ]
+      }
+     },
+     {
+      "name": "1500 m",
+      "M": "4:03.00",
+      "W": "4:50.00",
+      "labels": {
+       "M": [
+        "1500 m"
+       ],
+       "W": [
+        "1500 m"
+       ]
+      }
+     },
+     {
+      "name": "3000 m",
+      "M": "8:50.00",
+      "W": "11:00.00",
+      "labels": {
+       "M": [
+        "3000 m"
+       ],
+       "W": [
+        "3000 m"
+       ]
+      }
+     },
+     {
+      "name": "60 m haies",
+      "M": "9.00",
+      "W": "9.40",
+      "labels": {
+       "M": [
+        "60 mH 106.7"
+       ],
+       "W": [
+        "60 mH 83.8"
+       ]
+      },
+      "out": [
+       "110 m haies / 100 m haies",
+       "15.70",
+       "15.60"
+      ]
+     },
+     {
+      "name": "Hauteur",
+      "M": "1.93",
+      "W": "1.68",
+      "labels": {
+       "M": [
+        "Hoch"
+       ],
+       "W": [
+        "Hoch"
+       ]
+      }
+     },
+     {
+      "name": "Perche",
+      "M": "4.75",
+      "W": "3.80",
+      "labels": {
+       "M": [
+        "Stab"
+       ],
+       "W": [
+        "Stab"
+       ]
+      }
+     },
+     {
+      "name": "Longueur",
+      "M": "7.10",
+      "W": "5.85",
+      "labels": {
+       "M": [
+        "Weit"
+       ],
+       "W": [
+        "Weit"
+       ]
+      }
+     },
+     {
+      "name": "Triple saut",
+      "M": "13.20",
+      "W": "11.20",
+      "labels": {
+       "M": [
+        "Drei"
+       ],
+       "W": [
+        "Drei"
+       ]
+      }
+     },
+     {
+      "name": "Poids",
+      "M": "13.20",
+      "W": "12.80",
+      "labels": {
+       "M": [
+        "Kugel 7.26"
+       ],
+       "W": [
+        "Kugel 4.00"
+       ]
+      }
+     }
+    ],
+    "note": "Limites des championnats suisses en salle 2026 (Saint-Gall), à titre indicatif : celles de 2027 ne sont pas encore publiées. Elles sont à réaliser l'année des championnats ou l'année précédente, jusqu'au délai d'inscription."
+   }
   },
   {
    "id": "eich-2027",
@@ -322,7 +520,8 @@
       ]
      }
     ]
-   }
+   },
+   "scope": "intl"
   },
   {
    "id": "eu23-2027",
@@ -590,7 +789,9 @@
       }
      }
     ]
-   }
+   },
+   "scope": "intl",
+   "age": "U23"
   },
   {
    "id": "sm-2027",
@@ -602,7 +803,227 @@
    "lon": 6.633,
    "indoor": 0,
    "default": 1,
-   "source": "https://www.swiss-athletics.ch/wettkaempfe/veranstaltungen/meisterschaften/"
+   "source": "https://www.swiss-athletics.ch/wettkaempfe/veranstaltungen/meisterschaften/",
+   "scope": "nat",
+   "standards": {
+    "kind": "limit",
+    "window": [
+     "2026-01-01",
+     "2027-07-31"
+    ],
+    "source": "https://www.swiss-athletics.ch/fileadmin/user_upload/www.swiss-athletics.ch/sm-landingpages/sm-aktive-outdoor/SM_Aktive_2026_Limiten_df_V1.pdf",
+    "events": [
+     {
+      "name": "100 m",
+      "M": "11.00",
+      "W": "12.30",
+      "labels": {
+       "M": [
+        "100 m"
+       ],
+       "W": [
+        "100 m"
+       ]
+      }
+     },
+     {
+      "name": "200 m",
+      "M": "22.15",
+      "W": "25.15",
+      "labels": {
+       "M": [
+        "200 m"
+       ],
+       "W": [
+        "200 m"
+       ]
+      }
+     },
+     {
+      "name": "400 m",
+      "M": "50.40",
+      "W": "58.50",
+      "labels": {
+       "M": [
+        "400 m"
+       ],
+       "W": [
+        "400 m"
+       ]
+      }
+     },
+     {
+      "name": "800 m",
+      "M": "1:55.00",
+      "W": "2:16.00",
+      "labels": {
+       "M": [
+        "800 m"
+       ],
+       "W": [
+        "800 m"
+       ]
+      }
+     },
+     {
+      "name": "1500 m",
+      "M": "4:00.00",
+      "W": "4:45.00",
+      "labels": {
+       "M": [
+        "1500 m"
+       ],
+       "W": [
+        "1500 m"
+       ]
+      }
+     },
+     {
+      "name": "5000 m",
+      "M": "15:10.00",
+      "W": "18:30.00",
+      "labels": {
+       "M": [
+        "5000 m"
+       ],
+       "W": [
+        "5000 m"
+       ]
+      }
+     },
+     {
+      "name": "110 m haies / 100 m haies",
+      "M": "15.80",
+      "W": "15.40",
+      "labels": {
+       "M": [
+        "110 mH 106.7"
+       ],
+       "W": [
+        "100 mH 83.8"
+       ]
+      }
+     },
+     {
+      "name": "400 m haies",
+      "M": "57.00",
+      "W": "65.50",
+      "labels": {
+       "M": [
+        "400 mH 91.4"
+       ],
+       "W": [
+        "400 mH 76.2"
+       ]
+      }
+     },
+     {
+      "name": "Hauteur",
+      "M": "1.98",
+      "W": "1.70",
+      "labels": {
+       "M": [
+        "Hoch"
+       ],
+       "W": [
+        "Hoch"
+       ]
+      }
+     },
+     {
+      "name": "Perche",
+      "M": "4.80",
+      "W": "3.85",
+      "labels": {
+       "M": [
+        "Stab"
+       ],
+       "W": [
+        "Stab"
+       ]
+      }
+     },
+     {
+      "name": "Longueur",
+      "M": "7.00",
+      "W": "6.00",
+      "labels": {
+       "M": [
+        "Weit"
+       ],
+       "W": [
+        "Weit"
+       ]
+      }
+     },
+     {
+      "name": "Triple saut",
+      "M": "13.50",
+      "W": "11.60",
+      "labels": {
+       "M": [
+        "Drei"
+       ],
+       "W": [
+        "Drei"
+       ]
+      }
+     },
+     {
+      "name": "Poids",
+      "M": "13.80",
+      "W": "12.80",
+      "labels": {
+       "M": [
+        "Kugel 7.26"
+       ],
+       "W": [
+        "Kugel 4.00"
+       ]
+      }
+     },
+     {
+      "name": "Disque",
+      "M": "42.00",
+      "W": "40.50",
+      "labels": {
+       "M": [
+        "Diskus 2.00"
+       ],
+       "W": [
+        "Diskus 1.00"
+       ]
+      }
+     },
+     {
+      "name": "Marteau",
+      "M": "45.00",
+      "W": "42.00",
+      "labels": {
+       "M": [
+        "Hammer 7.26"
+       ],
+       "W": [
+        "Hammer 4.00"
+       ]
+      }
+     },
+     {
+      "name": "Javelot",
+      "M": "55.00",
+      "W": "42.00",
+      "labels": {
+       "M": [
+        "Speer 800"
+       ],
+       "W": [
+        "Speer 600"
+       ]
+      }
+     }
+    ],
+    "note": "Limites des championnats suisses 2026 (Zurich), à titre indicatif : celles de 2027 ne sont pas encore publiées. Elles sont à réaliser l'année des championnats ou l'année précédente, jusqu'au délai d'inscription."
+   }
   },
   {
    "id": "sm-u23-2027",
@@ -613,7 +1034,9 @@
    "lat": 47.558,
    "lon": 8.899,
    "indoor": 0,
-   "source": "https://www.swiss-athletics.ch/wettkaempfe/veranstaltungen/meisterschaften/"
+   "source": "https://www.swiss-athletics.ch/wettkaempfe/veranstaltungen/meisterschaften/",
+   "scope": "nat",
+   "age": "U23"
   },
   {
    "id": "wch-2027",
@@ -894,7 +1317,8 @@
       }
      }
     ]
-   }
+   },
+   "scope": "intl"
   }
  ],
  "venues": {
@@ -908,11 +1332,43 @@
   ],
   "Macolin": [
    47.139,
-   7.214
+   7.214,
+   "BE"
   ],
   "Magglingen": [
    47.139,
-   7.214
+   7.214,
+   "BE"
+  ],
+  "Colombier": [
+   46.966,
+   6.865,
+   "NE"
+  ],
+  "Chailly-sur-Montreux": [
+   46.452,
+   6.905,
+   "VD"
+  ],
+  "Schaan": [
+   47.165,
+   9.509,
+   ""
+  ],
+  "Tenero": [
+   46.18,
+   8.85,
+   "TI"
+  ],
+  "Reichenbach im Kandertal": [
+   46.625,
+   7.693,
+   "BE"
+  ],
+  "Hütten": [
+   47.176,
+   8.667,
+   "ZH"
   ]
  },
  "omio": {

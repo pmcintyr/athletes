@@ -1,6 +1,7 @@
 "use strict";
 /* Static athlete-profile site. Data files are produced by build_site.py; routes use the URL hash
-   (#/a/<id>, #/h2h/<id>/<id>, #/l/<year>/<out|in>/<M|W>, #/plan) so GitHub Pages never needs a server. */
+   (#/a/<id>, #/h2h/<id>/<id>, #/l/<year>/<out|in>/<M|W>, #/plan, #/clubs, #/club/<id>,
+   #/cantons, #/canton/<XX>, #/region/<id>) so GitHub Pages never needs a server. */
 
 const app = document.getElementById("app");
 let META = null;
@@ -120,6 +121,9 @@ function home() {
       <a href="#/l/${y}/in/M">Hommes, en salle</a>
       <a href="#/l/${y}/in/W">Femmes, en salle</a>
     </div>
+    ${META.geo ? `<h2>Clubs, cantons et régions</h2>
+    <p class="lede small">Tous les athlètes d'un club avec leur saison et le rang du club dans chaque épreuve ; les cantons et les trois régions côte à côte.</p>
+    <div class="quick"><a href="#/clubs">Trouver un club</a><a href="#/cantons">Comparer les cantons</a><a href="#/cantons/regions">Comparer les régions</a></div>` : ""}
     ${META.plan ? `<h2>Planifier ma saison</h2>
     <p class="lede small">Partez de vos objectifs : les courses à placer avant et après, là où l'on court à votre niveau, à portée de train. <a href="#/plan">Ouvrir le planificateur</a></p>` : ""}`;
   const s = searchBox({ label: "Rechercher un athlète", placeholder: "Nom ou prénom", link: e => athleteHref(e[0], e[1]) });
@@ -187,6 +191,8 @@ function honours(m) {
 async function profile(id) {
   const a = await loadAthlete(id);
   if (!a) return notFound("Cet athlète n'est pas (ou plus) dans la base.");
+  const [rks, geo, plan, cad] = await Promise.all([optJSON(`rk/${id.slice(0, 3)}.json`), optJSON("geo.json"), optJSON("planner.json"), optJSON("cadres.json")]);
+  const rk = rks && rks[id], canton = a.g && a.g[0];
   document.title = `${a.n} – ${META.title}`;
   const out = a.pb.filter(p => D(p[0])[0] === 0), ins = a.pb.filter(p => D(p[0])[0] === 1);
   const sbBy = {};
@@ -202,7 +208,8 @@ async function profile(id) {
       ${(a.k || []).length ? `<div class="badges">${a.k.map(([code, group, wcp]) => `<a class="badge" href="#/cadres">${esc((META.cadres || {})[code] || code)}${wcp ? " · World Class Potential" : ""}</a>`).join("")}</div>` : ""}
       <div class="facts">
         <span>${a.s === "W" ? "Née" : "Né"} en <strong class="num">${a.by}</strong></span>
-        ${a.c ? `<span>Club <strong>${esc(a.c)}</strong></span>` : ""}
+        ${a.c ? `<span>Club ${META.geo ? `<a href="${clubHref(a.c)}"><strong>${esc(a.c)}</strong></a>` : `<strong>${esc(a.c)}</strong>`}</span>` : ""}
+        ${canton && geo && geo.cantons[canton] ? `<span>Canton <a href="#/canton/${canton}"><strong>${esc(geo.cantons[canton][0])}</strong></a></span>` : ""}
         ${a.cs.length > 1 ? `<span>Avant : ${a.cs.slice(0, -1).reverse().map(esc).join(", ")}</span>` : ""}
         ${a.pg ? `<span><a href="p/${id}.html">Lien à partager</a></span>` : ""}
         ${META.plan ? `<span><a href="#/plan/${id}">Planifier ma saison</a></span>` : ""}
@@ -216,7 +223,11 @@ async function profile(id) {
       ${out.length ? `<div><h3>Plein air</h3>${pbLanes(out)}</div>` : ""}
       ${ins.length ? `<div><h3>En salle</h3>${pbLanes(ins)}</div>` : ""}
     </div>` : `<p class="empty">Aucune performance régulière.</p>`}
+    ${strongEvent(a, rk, geo)}
+    ${limitsBlock(a, plan, cad)}
     ${a.m.length ? honours(a.m) : ""}
+    ${rivalsBlock(id, rk)}
+    ${meetingsBlock(a)}
     ${progDiscs.length ? `<h2>Progression</h2>
       <div class="controls"><label>Épreuve <select id="pd">${progDiscs.map(d => `<option value="${d}">${esc(dName(d))}${D(d)[0] ? " (salle)" : ""}</option>`).join("")}</select></label></div>
       <div id="chart"></div>` : ""}
@@ -382,6 +393,320 @@ async function cadresPage() {
     </section>` : ""}`;
 }
 
+/* ---------- clubs, cantons and regions ----------
+   Data from build_site.py: geo.json (cantons, regions), clubs.json, club/<id>.json, canton/<XX>.json, region/<id>.json and
+   rk/<xyz>.json (ranks of each active athlete). "Active" = an adult with a result in the last two seasons. */
+const clubHref = name => `#/club/${slug(name)}`;
+const optJSON = path => getJSON(path).catch(() => null);
+const ordinal = n => (n === 1 ? "1er" : `${n}e`);
+const seasonsLabel = g => (g.years[0] === g.years[1] ? `saison ${g.years[0]}` : `plein air ${g.years[0]}, salle ${g.years[1]}`);
+const evLabel = d => `${dName(d)}${D(d)[0] ? " (salle)" : ""}`;
+const unitOf = d => (lower(d) ? " s" : /kampf|Athletic-Cup/i.test(D(d)[1]) ? " pts" : " m");
+/* How far `value` is from `target` in event d: <= 0 means reached. */
+const gapTo = (d, value, target) => sortv(d, value) - sortv(d, target);
+const fmtGap = (d, gap) => `${lower(d) && gap >= 60 ? fmtVal(gap, d) : gap.toFixed(lower(d) || !/kampf/i.test(D(d)[1]) ? 2 : 0)}${lower(d) && gap >= 60 ? "" : unitOf(d)}`;
+
+/* Is an athlete born in `by` allowed in a competition reserved for `cat` ("U20", "M" = masters) held in `year`?
+   null when the birth year is not known. */
+function eligible(cat, by, year) {
+  if (!cat) return true;
+  if (!by) return null;
+  const age = year - by;
+  return cat === "M" ? age >= 30 : age < +cat.slice(1);
+}
+
+function deltaCell(d, now, prev) {
+  const a = markValue(now), b = markValue(prev);
+  if (a === null || b === null) return "";
+  const gain = sortv(d, b) - sortv(d, a);
+  if (Math.abs(gain) < 1e-9) return `<span class="muted">=</span>`;
+  return `<span class="${gain > 0 ? "win" : "down"}">${gain > 0 ? "▲" : "▼"} ${fmtGap(d, Math.abs(gain))}</span>`;
+}
+
+async function clubsPage() {
+  document.title = `Clubs – ${META.title}`;
+  const [clubs, geo] = await Promise.all([optJSON("clubs.json"), optJSON("geo.json")]);
+  if (!clubs || !geo) return notFound("Les pages des clubs ne sont pas encore disponibles.");
+  app.innerHTML = `
+    <section class="profile-head">
+      <h1>Clubs</h1>
+      <p class="lede">Chaque club avec ses athlètes, leurs meilleures performances de la saison, leur progression et le rang du club dans chaque épreuve.</p>
+    </section>
+    <div class="controls" style="margin-top:20px">
+      <label>Nom du club <input id="cq" type="search" class="field" autocomplete="off" placeholder="Stade, LC, CA…"></label>
+      <label>Canton <select id="cc"><option value="">Tous</option>${Object.entries(geo.cantons).sort((x, y) => x[1][0].localeCompare(y[1][0], "fr")).map(([k, v]) => `<option value="${k}">${esc(v[0])}</option>`).join("")}<option value="?">Non situé</option></select></label>
+    </div>
+    <div id="cl"></div>
+    <p class="note">${fmtInt(clubs.length)} clubs comptent au moins un athlète majeur avec un résultat depuis ${Math.min(...geo.years) - 1}. Le canton est déduit de la localité du club${geo.unplaced[0] ? ` ; ${geo.unplaced[0]} club${geo.unplaced[0] > 1 ? "s n'ont" : " n'a"} pas pu être situé${geo.unplaced[0] > 1 ? "s" : ""}` : ""}.</p>`;
+  const draw = () => {
+    const q = norm(app.querySelector("#cq").value), c = app.querySelector("#cc").value;
+    const rows = clubs.filter(x => (!q || norm(x[1]).includes(q)) && (!c || (c === "?" ? !x[2] : x[2] === c)));
+    app.querySelector("#cl").innerHTML = rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Club</th><th>Canton</th><th class="r">Athlètes</th></tr></thead>
+      <tbody>${rows.slice(0, 400).map(([id, n, k, na]) => `<tr><td><a href="#/club/${id}">${esc(n)}</a></td><td>${k ? `<a href="#/canton/${k}">${esc(geo.cantons[k] ? geo.cantons[k][0] : k)}</a>` : `<span class="muted">non situé</span>`}</td><td class="r num">${na}</td></tr>`).join("")}</tbody></table></div>
+      ${rows.length > 400 ? `<p class="note">${rows.length - 400} autres clubs : précisez la recherche.</p>` : ""}` : `<p class="empty">Aucun club pour ce filtre.</p>`;
+  };
+  app.querySelector("#cq").addEventListener("input", draw);
+  app.querySelector("#cc").addEventListener("change", draw);
+  draw();
+}
+
+async function clubPage(cid) {
+  const [c, geo] = await Promise.all([optJSON(`club/${cid}.json`), optJSON("geo.json")]);
+  if (!c || !geo) return notFound("Ce club n'a pas d'athlète majeur actif dans la base.");
+  document.title = `${c.n} – ${META.title}`;
+  const canton = c.g && c.g[0], years = geo.years;
+  const discs = [...new Set(c.a.flatMap(a => a[4].map(e => e[0])))].sort((x, y) => x - y);
+  app.innerHTML = `
+    <section class="profile-head">
+      <h1>${esc(c.n)}</h1>
+      <div class="facts">
+        ${c.g && c.g[1] ? `<span>${esc(c.g[1])}</span>` : ""}
+        ${canton ? `<span>Canton <a href="#/canton/${canton}"><strong>${esc(geo.cantons[canton] ? geo.cantons[canton][0] : canton)}</strong></a></span>` : ""}
+        <span><strong class="num">${c.a.length}</strong> athlète${c.a.length > 1 ? "s" : ""} actif${c.a.length > 1 ? "s" : ""}</span>
+      </div>
+    </section>
+    <div class="controls" style="margin-top:20px">
+      <span class="seg" role="group" aria-label="Sexe"><a href="#" data-sex="" aria-current="true">Tous</a><a href="#" data-sex="M">Hommes</a><a href="#" data-sex="W">Femmes</a></span>
+      <label>Épreuve <select id="ce"><option value="">Toutes</option>${discs.map(d => `<option value="${d}">${esc(evLabel(d))}</option>`).join("")}</select></label>
+    </div>
+    <h2>Le club dans chaque épreuve</h2>
+    <div id="cev"></div>
+    <h2>Athlètes</h2>
+    <div id="cat"></div>
+    <p class="note">Athlètes majeurs avec un résultat depuis ${Math.min(...years) - 1}, rattachés à leur dernier club connu ; les moins de ${META.min_age} ans ne sont pas affichés. Rangs et meilleures performances : ${seasonsLabel(geo)}, chronométrage électronique et vent régulier. Le rang du club est celui de son meilleur athlète parmi les clubs classés dans l'épreuve.</p>`;
+  let sex = "";
+  const draw = () => {
+    const fd = app.querySelector("#ce").value;
+    const ev = c.ev.filter(e => (!sex || e[1] === sex) && (fd === "" || e[0] === +fd));
+    app.querySelector("#cev").innerHTML = ev.length ? `<div class="tbl-wrap"><table>
+      <thead><tr><th>Épreuve</th><th class="r">Rang du club</th><th class="r">Meilleure perf.</th><th>Athlète</th><th class="r hide-s">Athlètes classés</th></tr></thead>
+      <tbody>${ev.map(([d, s, rk, n, mark, pid, name, na]) => `<tr><td>${esc(evLabel(d))} <span class="muted">${s === "W" ? "F" : "H"}</span></td>
+        <td class="r num"><strong class="${rk <= 3 ? "win" : ""}">${ordinal(rk)}</strong> <span class="muted">sur ${n}</span></td><td class="mk r">${esc(mark)}</td>
+        <td><a href="${athleteHref(pid, name)}">${esc(name)}</a></td><td class="r num hide-s">${na}</td></tr>`).join("")}</tbody></table></div>`
+      : `<p class="empty small">Aucun classement pour ce filtre.</p>`;
+    const rows = [];
+    c.a.filter(a => !sex || a[3] === sex).forEach(([pid, name, by, s, evs]) => {
+      const list = evs.filter(e => (fd === "" || e[0] === +fd) && (e[1] || e[2] || fd !== ""));
+      (fd === "" ? list.slice(0, 4) : list).forEach((e, i) => rows.push([i ? null : [pid, name, by], e]));
+    });
+    app.querySelector("#cat").innerHTML = rows.length ? `<div class="tbl-wrap"><table>
+      <thead><tr><th>Athlète</th><th>Épreuve</th><th class="r">${years[0] === years[1] ? years[0] : "Saison"}</th><th class="r hide-s">Saison d'avant</th><th>Progression</th><th class="r hide-s">Record</th><th class="r">Rang suisse</th></tr></thead>
+      <tbody>${rows.map(([who, [d, sb, prev, pb, nat]]) => `<tr${who ? ' class="first"' : ""}><td>${who ? `<a href="${athleteHref(who[0], who[1])}">${esc(who[1])}</a> <span class="muted num">${who[2]}</span>` : ""}</td>
+        <td>${esc(evLabel(d))}</td><td class="mk r">${esc(sb || "")}${sb && sb === pb ? `<span class="tag pb">RP</span>` : ""}</td><td class="r num hide-s">${esc(prev || "")}</td>
+        <td class="num">${deltaCell(d, sb, prev)}</td><td class="r num hide-s">${esc(pb || "")}</td><td class="r num">${nat ?? ""}</td></tr>`).join("")}</tbody></table></div>
+      ${fd === "" ? `<p class="note">Quatre épreuves au plus par athlète, les mieux classées d'abord : choisissez une épreuve pour voir tout le monde.</p>` : ""}`
+      : `<p class="empty small">Aucun athlète pour ce filtre.</p>`;
+  };
+  app.querySelector(".seg").addEventListener("click", e => {
+    if (e.target.dataset.sex === undefined) return;
+    e.preventDefault(); sex = e.target.dataset.sex;
+    app.querySelectorAll(".seg a").forEach(x => x.setAttribute("aria-current", String(x.dataset.sex === sex)));
+    draw();
+  });
+  app.querySelector("#ce").addEventListener("change", draw);
+  draw();
+}
+
+async function cantonsPage(mode) {
+  document.title = `Cantons et régions – ${META.title}`;
+  const geo = await optJSON("geo.json");
+  if (!geo) return notFound("La comparaison des cantons n'est pas encore disponible.");
+  const byRegion = mode === "regions";
+  const COLS = [["Clubs", 2], ["Athlètes actifs", 3], ["Places dans le top 10 suisse", 4], ["Places sur le podium", 5], ["Meilleures performances suisses", 6], ["Podiums aux championnats suisses", 7]];
+  const rows = byRegion
+    ? geo.regions.map(r => [r.id, r.name, r.cantons.join(", "), ...COLS.map(([, i]) => r.cantons.reduce((n, c) => n + (geo.cantons[c] ? geo.cantons[c][i] : 0), 0))])
+    : Object.entries(geo.cantons).map(([k, v]) => [k, v[0], (geo.regions.find(r => r.id === v[1]) || {}).short || "", ...COLS.map(([, i]) => v[i])]);
+  let sortCol = 4, dir = -1;
+  app.innerHTML = `
+    <section class="profile-head">
+      <h1>Cantons et régions</h1>
+      <p class="lede">Où se trouvent les athlètes et les performances : chaque canton et chaque région d'après le club des athlètes, ${seasonsLabel(geo)}.</p>
+    </section>
+    <div class="controls" style="margin-top:20px">
+      <span class="seg"><a href="#/cantons" aria-current="${!byRegion}">Cantons</a><a href="#/cantons/regions" aria-current="${byRegion}">Régions</a></span>
+    </div>
+    <div id="gt"></div>
+    <p class="note">Un athlète compte pour le canton de son dernier club. Athlètes actifs : majeurs avec un résultat depuis ${Math.min(...geo.years) - 1}. Top 10, podium et meilleure performance suisse : rang dans la liste suisse de la saison, par épreuve et par sexe, dans les épreuves comptant au moins ${geo.min_field} athlètes classés (une place par athlète et par épreuve, salle et plein air séparés). Podiums aux championnats suisses : toutes catégories, saison ${Math.max(...geo.years)}. Les trois régions sont celles des championnats régionaux de Swiss Athletics.${geo.unplaced[1] ? ` ${fmtInt(geo.unplaced[1])} athlètes de ${geo.unplaced[0]} club${geo.unplaced[0] > 1 ? "s" : ""} non situé${geo.unplaced[0] > 1 ? "s" : ""} ne sont comptés nulle part.` : ""} Les athlètes de moins de ${META.min_age} ans ne sont pas comptés.</p>`;
+  const draw = () => {
+    const sorted = rows.slice().sort((x, y) => (typeof x[sortCol] === "number" ? (x[sortCol] - y[sortCol]) * dir : String(x[sortCol]).localeCompare(String(y[sortCol]), "fr") * dir));
+    const max = COLS.map((_, i) => Math.max(1, ...rows.map(r => r[3 + i])));
+    const th = (label, i, num) => `<th class="${num ? "r" : ""}" aria-sort="${sortCol === i ? (dir < 0 ? "descending" : "ascending") : "none"}"><button type="button" class="sort" data-col="${i}">${label}${sortCol === i ? (dir < 0 ? " ▼" : " ▲") : ""}</button></th>`;
+    app.querySelector("#gt").innerHTML = `<div class="tbl-wrap"><table class="geo">
+      <thead><tr>${th(byRegion ? "Région" : "Canton", 1)}${th(byRegion ? "Cantons" : "Région", 2)}${COLS.map(([l], i) => th(l, 3 + i, true)).join("")}</tr></thead>
+      <tbody>${sorted.map(r => `<tr><td><a href="#/${byRegion ? "region" : "canton"}/${r[0]}"><strong>${esc(r[1])}</strong></a></td><td class="muted">${esc(r[2])}</td>
+        ${COLS.map((_, i) => `<td class="r num bar" style="--w:${(100 * r[3 + i] / max[i]).toFixed(0)}%"><span>${fmtInt(r[3 + i])}</span></td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  };
+  app.querySelector("#gt").addEventListener("click", e => {
+    const b = e.target.closest(".sort");
+    if (!b) return;
+    const col = +b.dataset.col;
+    if (col === sortCol) dir = -dir; else { sortCol = col; dir = col <= 2 ? 1 : -1; }
+    draw();
+  });
+  draw();
+}
+
+async function unitPage(kind, key) {
+  const geo = await optJSON("geo.json");
+  const region = kind === "region" && geo ? geo.regions.find(r => r.id === key) : null;
+  const canton = kind === "canton" && geo ? geo.cantons[key] : null;
+  const data = (region || canton) ? await optJSON(`${kind}/${key}.json`) : null;
+  if (!data) return notFound("Ce canton ou cette région n'existe pas dans la base.");
+  const name = region ? region.name : canton[0];
+  document.title = `${name} – ${META.title}`;
+  const cantons = region ? region.cantons : [key];
+  const sum = i => cantons.reduce((n, c) => n + (geo.cantons[c] ? geo.cantons[c][i] : 0), 0);
+  const reg = canton ? geo.regions.find(r => r.id === canton[1]) : null;
+  let sex = "M", io = 0;
+  app.innerHTML = `
+    <section class="profile-head">
+      <h1>${esc(name)}</h1>
+      <div class="facts">
+        ${reg ? `<span>Région <a href="#/region/${reg.id}"><strong>${esc(reg.name)}</strong></a></span>` : ""}
+        ${region ? `<span>${region.cantons.map(c => `<a href="#/canton/${c}">${esc(geo.cantons[c] ? geo.cantons[c][0] : c)}</a>`).join(", ")}</span>` : ""}
+        <span><a href="#/cantons${region ? "/regions" : ""}">Comparer ${region ? "les régions" : "les cantons"}</a></span>
+      </div>
+      <div class="counts">
+        <span><b class="num">${fmtInt(sum(2))}</b>clubs</span><span><b class="num">${fmtInt(sum(3))}</b>athlètes actifs</span>
+        <span><b class="num">${fmtInt(sum(4))}</b>places dans le top 10 suisse</span><span><b class="num">${fmtInt(sum(7))}</b>podiums aux championnats suisses</span>
+      </div>
+    </section>
+    <h2>Les meilleurs ${region ? "de la région" : "du canton"}</h2>
+    <div class="controls">
+      <span class="seg" data-g="io"><a href="#" data-v="0" aria-current="true">Plein air</a><a href="#" data-v="1">En salle</a></span>
+      <span class="seg" data-g="sex"><a href="#" data-v="M" aria-current="true">Hommes</a><a href="#" data-v="W">Femmes</a></span>
+    </div>
+    <div id="ub"></div>
+    <h2>Clubs</h2>
+    ${data.clubs.length ? `<div class="tbl-wrap"><table><thead><tr><th>Club</th><th class="r">Athlètes actifs</th></tr></thead>
+      <tbody>${data.clubs.map(([id, n, na]) => `<tr><td><a href="#/club/${id}">${esc(n)}</a></td><td class="r num">${na}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty small">Aucun club situé ici.</p>`}
+    <p class="note">${seasonsLabel(geo)[0].toUpperCase() + seasonsLabel(geo).slice(1)} : les cinq meilleurs par épreuve parmi les athlètes majeurs des clubs ${region ? "de la région" : "du canton"}, avec leur rang dans la liste suisse. Épreuves comptant au moins ${geo.min_field} athlètes classés en Suisse. Liste non officielle, d'après les résultats publics de Swiss Athletics.</p>`;
+  const draw = () => {
+    const list = (data.best[sex] || []).filter(([d]) => D(d)[0] === io);
+    app.querySelector("#ub").innerHTML = list.length ? `<div class="cols">${list.map(([d, rows]) => `<section class="list-sec"><h3>${esc(dName(d))}</h3><div class="tbl-wrap"><table>
+      <thead><tr><th class="r">Rg</th><th class="r">Perf.</th><th>Athlète</th><th class="r">CH</th></tr></thead>
+      <tbody>${rows.map(([rk, mark, pid, n, by, club, nat]) => `<tr><td class="r num">${rk}</td><td class="mk r">${esc(mark)}</td>
+        <td><a href="${athleteHref(pid, n)}">${esc(n)}</a> <span class="muted num">${by}</span><br><a class="sub" href="${clubHref(club)}">${esc(club)}</a></td><td class="r num">${nat}</td></tr>`).join("")}</tbody>
+      </table></div></section>`).join("")}</div>` : `<p class="empty small">Aucune performance pour ce choix.</p>`;
+  };
+  app.querySelectorAll(".seg[data-g]").forEach(seg => seg.addEventListener("click", e => {
+    if (e.target.dataset.v === undefined) return;
+    e.preventDefault();
+    if (seg.dataset.g === "io") io = +e.target.dataset.v; else sex = e.target.dataset.v;
+    seg.querySelectorAll("a").forEach(x => x.setAttribute("aria-current", String(x === e.target)));
+    draw();
+  }));
+  draw();
+}
+
+/* ---------- profile: strongest event, limits, rivals, meetings that worked ---------- */
+function strongEvent(a, rk, geo) {
+  const row = rk && rk.r && (rk.r.find(r => r[3] >= 10) || rk.r[0]);
+  if (!row) return "";
+  const [d, season, nat, natN, can, canN, club, clubN] = row;
+  const legal = a.r.filter(r => r[0] === d && !r[9] && r[10] !== null);
+  const inSeason = legal.filter(r => r[1].startsWith(String(season))).map(r => r[10]).sort((x, y) => sortv(d, x) - sortv(d, y));
+  const pb = a.pb.find(p => p[0] === d), sbs = a.sb.filter(s => s[0] === d).sort((x, y) => x[1] - y[1]);
+  const cur = sbs.find(s => s[1] === season), prev = sbs.find(s => s[1] === season - 1);
+  const bestSeason = sbs.reduce((b, s) => (!b || sortv(d, s[3]) < sortv(d, b[3]) ? s : b), null);
+  const top3 = inSeason.slice(0, 3), avg = top3.length ? top3.reduce((n, v) => n + v, 0) / top3.length : null;
+  const canton = a.g && a.g[0], cName = canton && geo && geo.cantons[canton] ? geo.cantons[canton][0] : canton;
+  const stat = (big, small) => `<span><b class="num">${big}</b>${small}</span>`;
+  return `<h2>Point fort : ${esc(evLabel(d))}</h2>
+    <div class="strong">
+      <div class="counts">
+        ${stat(`${ordinal(nat)}`, `en Suisse en ${season}<br><span class="muted">sur ${fmtInt(natN)} classé${natN > 1 ? "s" : ""}</span>`)}
+        ${can ? stat(ordinal(can), `${cName ? `<a href="#/canton/${canton}">${esc(cName)}</a>` : "dans le canton"}<br><span class="muted">sur ${canN}</span>`) : ""}
+        ${club ? stat(ordinal(club), `<a href="${clubHref(a.c)}">dans le club</a><br><span class="muted">sur ${clubN}</span>`) : ""}
+        ${cur ? stat(esc(cur[2]), `meilleure perf. ${season}${pb && pb[1] === cur[2] ? `<br><span class="win">record personnel</span>` : ""}`) : ""}
+      </div>
+      <ul class="plain facts-list">
+        ${pb ? `<li>Record personnel <strong class="num">${esc(pb[1])}</strong> <span class="muted">le ${fmtDate(pb[3])}, ${esc(pb[4])}</span></li>` : ""}
+        ${cur && prev ? `<li>Par rapport à ${season - 1} (<span class="num">${esc(prev[2])}</span>) : ${deltaCell(d, cur[2], prev[2])}</li>` : ""}
+        ${inSeason.length ? `<li><strong class="num">${inSeason.length}</strong> performance${inSeason.length > 1 ? "s" : ""} en ${season}${top3.length === 3 ? `, moyenne des trois meilleures <strong class="num">${fmtVal(avg, d)}</strong>` : ""}</li>` : ""}
+        ${bestSeason && sbs.length > 1 ? `<li>${sbs.length} saisons dans l'épreuve, la meilleure en <strong class="num">${bestSeason[1]}</strong> (<span class="num">${esc(bestSeason[2])}</span>)</li>` : ""}
+      </ul>
+    </div>`;
+}
+
+function rivalsBlock(id, rk) {
+  if (!rk || !rk.v || !rk.v[1].length) return "";
+  const [d, list] = rk.v, me = rk.r.find(r => r[0] === d);
+  return `<h2>Adversaires directs</h2>
+    <p class="note">Les athlètes classés juste avant et juste après en ${esc(evLabel(d))}${me ? ` dans la liste suisse ${me[1]}` : ""}.</p>
+    <div class="tbl-wrap"><table><thead><tr><th class="r">Rg</th><th>Athlète</th><th class="r">Perf.</th><th></th></tr></thead>
+    <tbody>${list.map(([pid, n, mark, r]) => `<tr><td class="r num">${r}</td><td><a href="${athleteHref(pid, n)}">${esc(n)}</a></td><td class="mk r">${esc(mark)}</td>
+      <td><a href="#/h2h/${id}/${pid}">Confrontations</a></td></tr>`).join("")}</tbody></table></div>`;
+}
+
+/* Standards and limits against the athlete's own marks: Swiss championships, Swiss Starters, international standards. */
+function limitsBlock(a, plan, cad) {
+  const sets = [];
+  ((plan && plan.championships) || []).forEach(c => {
+    if (!c.standards || eligible(c.age || "", a.by, +c.start.slice(0, 4)) === false) return;
+    sets.push({ name: c.name + (c.standards.kind === "limit" ? "" : ` ${c.start.slice(0, 4)}`), indoor: c.indoor, from: c.standards.window[0], to: c.standards.window[1],
+      rows: c.standards.events.map(e => [e.labels[a.s] || [], e[a.s]]) });
+  });
+  const L = cad && cad.limits;
+  if (L && a.nat === "SUI") sets.push({ name: `${L.name.replace(/^Limites /, "")} (${L.for})`, indoor: null, from: `${L.year}-01-01`, to: `${L.year}-12-31`, rows: L.events.map(e => [e[a.s === "W" ? 5 : 4] || [], e[a.s === "W" ? 2 : 1]]) });
+  const out = [];
+  sets.forEach(set => set.rows.forEach(([labels, text]) => {
+    const target = markValue(text);
+    if (target === null) return;
+    let best = null;  // nearest of the athlete's personal bests in this event (indoor marks for an indoor championship)
+    a.pb.forEach(p => {
+      if (!labels.includes(D(p[0])[1]) || (set.indoor !== null && D(p[0])[0] !== set.indoor)) return;
+      const v = markValue(p[1]);
+      if (v !== null && (!best || sortv(p[0], v) < sortv(best.d, best.v))) best = { d: p[0], v, mark: p[1], date: p[3] };
+    });
+    if (!best) return;
+    const win = a.r.filter(r => labels.includes(D(r[0])[1]) && (set.indoor === null || D(r[0])[0] === set.indoor) && !r[9] && r[10] !== null && r[1] >= set.from && r[1] <= set.to)
+      .reduce((b, r) => (!b || sortv(r[0], r[10]) < sortv(r[0], b[10]) ? r : b), null);
+    const gap = gapTo(best.d, win ? win[10] : best.v, target);
+    out.push({ set, d: best.d, text, best, win, gap, rel: gap / Math.abs(target), done: !!win && gap <= 0 });
+  }));
+  if (!out.length) return "";
+  // per event: what is reached, then the next two steps
+  const shown = [];
+  [...new Set(out.map(o => D(o.d)[1]))].forEach(label => {
+    const rows = out.filter(o => D(o.d)[1] === label).sort((x, y) => x.rel - y.rel);
+    if (rows[0].rel > 0.12) return;  // nothing within reach in this event
+    shown.push(...rows.filter(o => o.gap <= 0), ...rows.filter(o => o.gap > 0).slice(0, 2));
+  });
+  if (!shown.length) return "";
+  return `<h2>Où j'en suis des limites</h2>
+    <div class="tbl-wrap"><table><thead><tr><th>Épreuve</th><th>Limite</th><th class="r">À réaliser</th><th class="r">Ma référence</th><th>Écart</th></tr></thead>
+    <tbody>${shown.map(o => `<tr><td>${esc(evLabel(o.d))}</td><td>${esc(o.set.name)}</td><td class="mk r">${esc(o.text)}</td>
+      <td class="r num">${o.win ? `${esc(o.win[2])} <span class="muted">${fmtDate(o.win[1])}</span>` : `${esc(o.best.mark)} <span class="muted">record, ${o.best.date.slice(0, 4)}</span>`}</td>
+      <td>${o.done ? `<span class="win">réalisée</span>` : o.gap <= 0 ? `<span class="muted">record au niveau, à refaire dans la période</span>` : `à <strong class="num">${fmtGap(o.d, o.gap)}</strong>`}</td></tr>`).join("")}</tbody></table></div>
+    <p class="note">Ma référence : la meilleure performance régulière dans la période de qualification, sinon le record personnel. Limites des championnats suisses : celles de la dernière édition publiée, à titre indicatif ; minima internationaux repris des documents des fédérations. Atteindre une limite ne garantit ni l'inscription ni la sélection. Les Talent Cards de Swiss Olympic ne figurent pas ici : elles sont attribuées sur une évaluation (PISTE), pas sur une limite chiffrée. <a href="#/plan">Planifier ma saison</a></p>`;
+}
+
+/* Meetings where the athlete set personal bests: same meeting from year to year = same name without numbers, same venue. */
+function meetingsBlock(a) {
+  const best = new Map(), series = new Map(), sb = new Map();
+  a.r.slice().reverse().forEach(r => {
+    const [d, date, , , , , meet, loc, , ass, v] = r;
+    if (v === null || ass || !meet) return;
+    const key = `${norm(meet.replace(/\d+/g, " "))}|${loc}`;
+    const s = series.get(key) || { name: meet, loc, n: 0, pb: 0, sb: 0, last: "" };
+    s.n++; if (date >= s.last) { s.last = date; s.name = meet; }
+    series.set(key, s);
+    if (best.has(d) && sortv(d, v) < sortv(d, best.get(d))) s.pb++;
+    if (!best.has(d) || sortv(d, v) < sortv(d, best.get(d))) best.set(d, v);
+    const k = `${d}|${date.slice(0, 4)}`, cur = sb.get(k);
+    if (!cur || sortv(d, v) < sortv(d, cur.v)) sb.set(k, { v, key });
+  });
+  sb.forEach(x => { series.get(x.key).sb++; });
+  const top = [...series.values()].filter(s => s.pb >= 1 && s.n >= 2).sort((x, y) => y.pb - x.pb || y.sb - x.sb || x.n - y.n).slice(0, 5);
+  if (!top.length) return "";
+  return `<h2>Les compétitions qui me réussissent</h2>
+    <div class="tbl-wrap"><table><thead><tr><th>Compétition</th><th class="r">Records personnels</th><th class="r">Meilleures perf. de saison</th><th class="r hide-s">Départs</th><th class="hide-s">Dernière fois</th></tr></thead>
+    <tbody>${top.map(s => `<tr><td>${esc(s.name.replace(/\s*\((WRC|WCR)\)/, ""))}${s.loc ? ` <span class="muted">· ${esc(s.loc)}</span>` : ""}</td><td class="r num"><strong>${s.pb}</strong></td>
+      <td class="r num">${s.sb}</td><td class="r num hide-s">${s.n}</td><td class="dt hide-s">${fmtDate(s.last)}</td></tr>`).join("")}</tbody></table></div>
+    <p class="note">Records battus sur place, toutes épreuves confondues (la première performance dans une épreuve ne compte pas comme record) ; une même compétition d'une année à l'autre est reconnue à son nom et à son lieu.</p>`;
+}
+
 /* ---------- season planner (#/plan) ----------
    Data: planner.json (championships, standards, departure cities) and plan/<d>.json (marks run at each meeting
    over the last seasons, from build_site.py). Everything is computed in the browser; choices stay in localStorage. */
@@ -444,20 +769,28 @@ const PHASES = [
   { k: "after", name: "Après l'objectif", from: 4, to: 24, end: true, hint: "Dans les 3 semaines qui suivent : une ou deux courses pour profiter de la forme." },
 ];
 
+const KIND = ["", "championnat suisse", "championnat régional", "championnat cantonal"];
+
 async function planPage(athId) {
   document.title = `Planifier ma saison – ${META.title}`;
   if (!META.plan || !META.plan.disc.length) return notFound("Le planificateur n'est pas encore disponible.");
   let CFG;
   try { CFG = await getJSON("planner.json"); } catch { return notFound("Le planificateur n'est pas encore disponible."); }
+  const [GEO, townList] = await Promise.all([optJSON("geo.json"), optJSON("towns.json")]);
+  // departure points: every Swiss place of the build, else the short list of planner.json
+  const TOWNS = new Map();
+  [...(townList || []), ...CFG.homes].forEach(t => TOWNS.set(norm(t[0]), t));
+  const regionOf = c => { const r = GEO && GEO.regions.find(x => x.cantons.includes(c)); return r ? r.id : null; };
   const events = new Map();  // Alabus label -> { out: d, in: d }
   META.plan.disc.forEach(d => { const e = events.get(D(d)[1]) || {}; e[D(d)[0] ? "in" : "out"] = d; events.set(D(d)[1], e); });
   const anyD = label => { const e = events.get(label) || {}; return e.out ?? e.in; };
   const today = toISO(Date.now());
   const champs = CFG.championships.filter(c => (c.end || c.start) >= today);
-  const st = Object.assign({ ath: null, athName: "", sex: "M", ev: "", level: "", target: "", home: CFG.homes[0][0], maxh: 0, weekend: false,
-    objs: champs.filter(c => c.default).map(c => c.id), custom: [], picks: [] }, saved("plan.v1") || {});
+  const st = Object.assign({ ath: null, athName: "", sex: "M", by: "", ev: "", level: "", target: "", home: CFG.homes[0][0], maxh: 0, weekend: false,
+    objs: champs.filter(c => c.default).map(c => c.id), sobj: [], custom: [], picks: [], auto: true }, saved("plan.v2") || {});
   if (!events.has(st.ev)) st.ev = events.has("1500 m") ? "1500 m" : events.keys().next().value;
   st.custom = st.custom.filter(c => c.date >= today);
+  st.sobj = st.sobj.filter(c => c.start >= today);
 
   let ath = null;
   const pbOf = label => {  // best personal best of the loaded athlete in this event, indoor or outdoor
@@ -470,10 +803,15 @@ async function planPage(athId) {
     ath = await loadAthlete(athId);
     if (ath) {
       const first = ath.pb.map(p => D(p[0])[1]).find(l => events.has(l));
-      Object.assign(st, { ath: athId, athName: ath.n, sex: ath.s === "W" ? "W" : "M", ev: first || st.ev, target: "" });
+      Object.assign(st, { ath: athId, athName: ath.n, sex: ath.s === "W" ? "W" : "M", by: ath.by, ev: first || st.ev, target: "", sobj: [], picks: [], auto: true });
       st.level = pbOf(st.ev);
+      // leave from the town of the athlete's club, or from the capital of its canton
+      const g = ath.g, cap = g && GEO && GEO.capitals[g[0]];
+      if (g && g[1] && g[2] !== null) { TOWNS.set(norm(g[1]), [g[1], g[2], g[3], g[0]]); st.home = g[1]; }
+      else if (cap) { TOWNS.set(norm(cap[0]), [cap[0], cap[1], cap[2], g[0]]); st.home = cap[0]; }
     }
   } else if (st.ath) ath = await loadAthlete(st.ath);
+  const homeOf = () => TOWNS.get(norm(st.home)) || null;
 
   const evOpts = [...events.keys()].map(l => `<option value="${esc(l)}"${l === st.ev ? " selected" : ""}>${esc(dName(anyD(l)))}</option>`).join("");
   app.innerHTML = `
@@ -488,12 +826,15 @@ async function planPage(athId) {
         <span class="seg" role="group" aria-label="Sexe"><a href="#" data-sex="M">Hommes</a><a href="#" data-sex="W">Femmes</a></span>
         <label>Mon niveau actuel <input name="level" type="text" inputmode="decimal" size="8" placeholder="3:45.00" value="${esc(st.level)}"></label>
         <label>Mon objectif <input name="target" type="text" inputmode="decimal" size="8" placeholder="3:40.00" value="${esc(st.target)}"></label>
+        <label>Année de naissance <input name="by" type="text" inputmode="numeric" size="5" maxlength="4" placeholder="2000" value="${esc(st.by)}"></label>
       </div>
       <div class="controls">
-        <label>Départ de <select name="home">${CFG.homes.map(h => `<option${h[0] === st.home ? " selected" : ""}>${esc(h[0])}</option>`).join("")}</select></label>
+        <label>Départ de <input name="home" type="text" list="ptowns" size="18" autocomplete="off" value="${esc(st.home)}"></label>
+        <datalist id="ptowns">${[...TOWNS.values()].map(t => `<option value="${esc(t[0])}">`).join("")}</datalist>
         <label>Trajet aller au plus <select name="maxh">${[[0, "Sans limite"], [2, "2 h"], [3, "3 h"], [4, "4 h"], [6, "6 h"], [9, "9 h"]].map(([v, t]) => `<option value="${v}"${+st.maxh === v ? " selected" : ""}>${t}</option>`).join("")}</select></label>
         <label class="check"><input name="weekend" type="checkbox"${st.weekend ? " checked" : ""}> Faisable en un week-end, sans congé</label>
       </div>
+      <p class="note" id="phome"></p>
       <fieldset class="objs"><legend>Mes objectifs</legend><div id="pobj"></div>
         <div class="controls add-obj">
           <label>Autre objectif <input name="cname" type="text" size="18" placeholder="Nom de la compétition"></label>
@@ -510,28 +851,109 @@ async function planPage(athId) {
     const box = app.querySelector("#pwho");
     if (st.ath && st.athName) {
       box.innerHTML = `<p class="plan-who">Plan pour <a href="${athleteHref(st.ath, st.athName)}"><strong>${esc(st.athName)}</strong></a> <button type="button" class="link" id="pclear">changer</button></p>`;
-      box.querySelector("#pclear").addEventListener("click", () => { st.ath = null; st.athName = ""; ath = null; saved("plan.v1", st); who(); });
+      box.querySelector("#pclear").addEventListener("click", () => { st.ath = null; st.athName = ""; ath = null; saved("plan.v2", st); who(); });
     } else {
       box.innerHTML = "";
       box.append(searchBox({ label: "Partir de mon profil (facultatif)", placeholder: "Nom ou prénom", small: true, link: e => `#/plan/${e[0]}` }));
     }
   };
-  const objectives = () => [...champs.filter(c => st.objs.includes(c.id)), ...st.custom.map((c, i) => ({ id: `c${i}`, name: c.name, start: c.date, end: c.date, indoor: c.indoor ? 1 : 0, custom: true }))]
+  const byYear = () => (/^(19|20)\d\d$/.test(String(st.by)) ? +st.by : null);
+  const refMark = () => markValue(st.level) ?? markValue(st.target);
+  const objectives = () => [...champs.filter(c => st.objs.includes(c.id)), ...st.sobj,
+    ...st.custom.map((c, i) => ({ id: `c${i}`, name: c.name, start: c.date, end: c.date, indoor: c.indoor ? 1 : 0, custom: true }))]
     .sort((a, b) => (a.start < b.start ? -1 : 1));
-  const drawObjs = () => {
-    app.querySelector("#pobj").innerHTML = `<ul class="plain">${champs.map(c => `<li><label class="check"><input type="checkbox" data-obj="${esc(c.id)}"${st.objs.includes(c.id) ? " checked" : ""}>
-        <span><strong>${esc(c.name)}</strong> <span class="muted">· ${fmtSpan(c.start, c.end)}, ${esc(c.place)}</span></span></label></li>`).join("")}
+
+  /* How realistic a championship of planner.json is for this athlete: its standard against the level entered. */
+  function reach(c, ev) {
+    const S = c.standards, d = c.indoor && ev.in !== undefined ? ev.in : (ev.out ?? ev.in), lv = refMark();
+    const e = S && S.events.find(x => (x.labels[st.sex] || []).includes(st.ev));
+    if (!e || lv === null || d === undefined) return { e, rel: null };
+    const target = markValue(e[st.sex]), gap = gapTo(d, lv, target);
+    return { e, d, gap, rel: gap / Math.abs(target), word: S.kind === "limit" ? "limite" : "minima" };
+  }
+
+  /* Objectives read from the results themselves: championships of the athlete's canton and region, Swiss championships
+     by age group, and the strongest meetings where the athlete's level fits in the field. */
+  function suggestions(docs, ev, home) {
+    const list = [], lv = refMark(), by = byYear();
+    ["out", "in"].forEach(k => {
+      const doc = docs[k], d = ev[k];
+      if (!doc || d === undefined) return;
+      const meetings = [];
+      (doc[st.sex] || []).forEach(([name, vi, kind, editions, cat]) => {
+        const last = editions[editions.length - 1];
+        if (+last[0].slice(0, 4) < META.plan.to - 1 || last[1].length < 3) return;
+        let date = last[0] >= today ? last[0] : projectDate(last[0], +today.slice(0, 4));
+        if (date < today) date = projectDate(last[0], +today.slice(0, 4) + 1);
+        if (eligible(cat, by, +date.slice(0, 4)) !== true) return;  // too old, too young, or age unknown for a reserved event
+        const v = doc.v[vi], vals = last[1], worst = vals[vals.length - 1], best = vals[0];
+        const inField = lv === null || sortv(d, lv) <= sortv(d, worst) + Math.abs(worst) * 0.02;
+        const o = { id: `s|${k}|${name}|${v[0]}`, name, start: date, end: date, place: v[0], indoor: k === "in" ? 1 : 0, real: date === last[0],
+          kind, cat, n: vals.length, best, worst, med: vals[Math.floor((vals.length - 1) / 2)], d, series: true };
+        if (kind === 1) {
+          if (champs.some(c => c.scope === "nat" && !!c.indoor === (k === "in") && Math.abs(pDate(c.start) - pDate(date)) < 21 * DAY)) return;  // already listed with its date
+          if (inField) list.push(o);
+        } else if (kind === 3) {
+          if (home && v[4] && v[4] === home[3] && inField) list.push(o);
+        } else if (kind === 2) {
+          if (home && v[4] && regionOf(v[4]) === regionOf(home[3]) && inField) list.push(o);
+        } else if (lv !== null && vals.length >= 6 && sortv(d, lv) <= sortv(d, worst) && sortv(d, lv) >= sortv(d, best) && !cat) {
+          meetings.push(o);
+        }
+      });
+      // "high-level meetings within reach": the strongest fields the athlete would still be part of
+      meetings.sort((x, y) => sortv(d, x.med) - sortv(d, y.med));
+      list.push(...meetings.slice(0, 2).map(o => ({ ...o, top: true })));
+    });
+    return list.sort((a, b) => (a.start < b.start ? -1 : 1));
+  }
+
+  function drawObjs(docs, ev, home) {
+    const by = byYear(), near = [], far = [];
+    let hiddenByAge = 0;
+    champs.forEach(c => {
+      const ok = eligible(c.age || "", by, +c.start.slice(0, 4));
+      if (ok === false) return;
+      if (ok === null) { hiddenByAge++; return; }
+      const r = reach(c, ev);
+      (c.scope === "intl" && !(r.rel !== null && r.rel <= 0.03) && !st.objs.includes(c.id) ? far : near).push([c, r]);
+    });
+    const sugg = suggestions(docs, ev, home);
+    if (st.auto) {  // first visit, or a new athlete: start from objectives within reach
+      st.auto = false;
+      if (refMark() !== null) {
+        st.objs = near.filter(([c, r]) => c.scope === "nat" && !c.age && (r.rel === null || r.rel <= 0.03)).map(([c]) => c.id);
+        if (!st.objs.length) st.sobj = [sugg.find(o => !o.indoor), sugg.find(o => o.indoor)].filter(Boolean);
+      }
+    }
+    const tag = (c, r) => (r.rel === null ? "" : r.gap <= 0 ? ` <span class="tag pb">${r.word} à votre niveau</span>` : ` <span class="tag w">${r.word} ${esc(r.e[st.sex])}, à ${fmtGap(r.d, r.gap)}</span>`);
+    const row = ([c, r]) => `<li><label class="check"><input type="checkbox" data-obj="${esc(c.id)}"${st.objs.includes(c.id) ? " checked" : ""}>
+      <span><strong>${esc(c.name)}</strong>${c.age && !c.name.includes(c.age) ? ` ${esc(c.age)}` : ""} <span class="muted">· ${fmtSpan(c.start, c.end)}, ${esc(c.place)}</span>${tag(c, r)}</span></label></li>`;
+    const picked = id => st.sobj.some(o => o.id === id);
+    const srow = o => `<li><label class="check"><input type="checkbox" data-sobj="${esc(o.id)}"${picked(o.id) ? " checked" : ""}>
+      <span><strong>${esc(o.name)}</strong> <span class="muted">· ${fmtDay(o.start)}${o.real ? "" : " (date habituelle)"}, ${esc(o.place || "lieu inconnu")}${o.indoor ? ", en salle" : ""}</span>
+      <span class="tag ${o.top ? "pb" : "w"}">${o.top ? "meeting relevé à votre portée" : KIND[o.kind]}</span>
+      <span class="muted">· ${o.n} résultats, de ${fmtVal(o.best, o.d)} à ${fmtVal(o.worst, o.d)}</span></span></label></li>`;
+    const extra = st.sobj.filter(o => !sugg.some(x => x.id === o.id));
+    app.querySelector("#pobj").innerHTML = `
+      <ul class="plain">${near.map(row).join("")}${[...sugg, ...extra].map(srow).join("")}
       ${st.custom.map((c, i) => `<li><span class="check"><span><strong>${esc(c.name)}</strong> <span class="muted">· ${fmtDate(c.date)}${c.indoor ? ", en salle" : ""}</span>
-        <button type="button" class="link" data-del="${i}">retirer</button></span></span></li>`).join("")}</ul>`;
-  };
+        <button type="button" class="link" data-del="${i}">retirer</button></span></span></li>`).join("")}</ul>
+      ${far.length ? `<details class="std"><summary>Championnats internationaux (${far.length})${refMark() !== null ? ", minima encore loin de votre niveau" : ""}</summary><ul class="plain">${far.map(row).join("")}</ul></details>` : ""}
+      <p class="note">${refMark() === null ? "Indiquez votre niveau pour voir les objectifs à votre portée : championnats de votre canton et de votre région, championnats suisses, meetings relevés. " : ""}${by ? "" : `Indiquez votre année de naissance pour voir les championnats par catégorie d'âge (U20, U23, masters)${hiddenByAge ? ` : ${hiddenByAge} ${hiddenByAge > 1 ? "sont masqués" : "est masqué"}` : ""}. `}${home ? "" : "Lieu de départ inconnu : choisissez une localité suisse dans la liste."}</p>`;
+    app.querySelector("#phome").innerHTML = home
+      ? `Trajets calculés depuis <strong>${esc(home[0])}</strong>${home[3] && GEO && GEO.cantons[home[3]] ? ` (${esc(GEO.cantons[home[3]][0])})` : ""}${ath && ath.g && norm(ath.g[1] || (GEO && GEO.capitals[ath.g[0]] || [""])[0]) === norm(home[0]) ? `, la localité de votre club` : ""} : changez de lieu de départ et tout se recalcule.`
+      : "";
+    return sugg;
+  }
 
   /* candidate races for one objective, grouped by phase */
   function candidates(obj, doc, d, home) {
-    const lowerB = lower(d), lv = markValue(st.level), tg = markValue(st.target);
+    const lv = markValue(st.level), tg = markValue(st.target), by = byYear();
     const ref = tg ?? lv, a = ref === null ? null : sortv(d, ref), b = sortv(d, lv ?? ref);
     const lo = a === null ? null : Math.min(a, b) - Math.abs(ref) * 0.015, hi = a === null ? null : Math.max(a, b) + Math.abs(ref) * 0.015;
     const res = PHASES.map(() => []);
-    (doc[st.sex] || []).forEach(([name, vi, champ, editions]) => {
+    (doc[st.sex] || []).forEach(([name, vi, champ, editions, cat]) => {
       const lastEd = editions[editions.length - 1], lastYear = +lastEd[0].slice(0, 4);
       if (lastYear < META.plan.to - 1) return;  // not held for two seasons
       const all = editions.flatMap(e => e[1]);
@@ -545,9 +967,10 @@ async function planPage(athId) {
           [from.slice(0, 4), to.slice(0, 4)].forEach(y => {
             const real = e[0].slice(0, 4) === y, date = real ? e[0] : projectDate(e[0], +y);
             if (date < from || date > to || date < today || seen.has(date)) return;
+            if (eligible(cat, by, +y) === false) return;  // reserved for an age group the athlete is not in
             seen.add(date);
             const vals = e[1], med = vals[Math.floor((vals.length - 1) / 2)];
-            res[pi].push({ key: `${name}|${v[0]}|${date}`, name, venue: v, champ, date, real, last: e[0], n: vals.length, best: vals[0], med,
+            res[pi].push({ key: `${name}|${v[0]}|${date}`, name, venue: v, champ, cat, date, real, last: e[0], n: vals.length, best: vals[0], med,
               eds: editions.length, zone, hit, t, fit: weekendFit(date, t), score: a === null ? all.length / editions.length : zone + hit * 0.5 });
           });
         });
@@ -561,12 +984,12 @@ async function planPage(athId) {
   function raceCard(c, d, home, obj) {
     const place = c.venue[0] || "lieu inconnu";
     const maps = c.t ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(home[0] + ", Suisse")}&destination=${c.venue[1]},${c.venue[2]}&travelmode=transit` : "";
-    const o = CFG.omio || {}, ids = o.ids || {}, from = ids[home[0]], to = ids[c.venue[0]];
+    const o = CFG.omio || {}, ids = o.ids || {}, from = ids[home ? home[0] : ""], to = ids[c.venue[0]];
     const q = [from && to ? `departure_fk=${encodeURIComponent(from)}&arrival_fk=${encodeURIComponent(to)}` : "", o.params || ""].filter(Boolean).join("&");
     const omio = o.site && c.t && c.t.km >= 8 ? o.site + (q ? "?" + q : "") : "";
     const lv = markValue(st.level), tg = markValue(st.target);
     return `<li class="race">
-      <div class="race-top"><span class="race-name">${esc(c.name)}${c.champ ? `<span class="tag w">championnat</span>` : ""}</span>
+      <div class="race-top"><span class="race-name">${esc(c.name)}${c.champ ? `<span class="tag w">${KIND[c.champ]}</span>` : ""}${c.cat ? `<span class="tag w">réservé ${c.cat === "M" ? "masters" : esc(c.cat)}</span>` : ""}</span>
         <span class="race-date num">${fmtDay(c.date)}</span></div>
       <p class="race-meta">${esc(place)} · ${c.real ? "date de l'édition " + c.date.slice(0, 4) : `date habituelle, à confirmer (édition ${c.last.slice(0, 4)} : ${fmtDay(c.last)})`}</p>
       <p class="race-meta">Édition ${c.last.slice(0, 4)} : ${c.n} résultat${c.n > 1 ? "s" : ""}, meilleur <strong class="num">${fmtVal(c.best, d)}</strong>${c.n > 2 ? `, médiane <span class="num">${fmtVal(c.med, d)}</span>` : ""}.
@@ -584,11 +1007,11 @@ async function planPage(athId) {
     const lv = markValue(st.level), val = markValue(e[st.sex]);
     let gap = "";
     if (lv !== null && val !== null) {
-      const diff = sortv(d, lv) - sortv(d, val);
-      gap = diff <= 0 ? `<span class="win">à votre niveau</span>` : `à ${lower(d) && diff >= 60 ? fmtVal(diff, d) : diff.toFixed(2)}${lower(d) ? " s" : D(d)[1].includes("kampf") ? " pts" : " m"}`;
+      const diff = gapTo(d, lv, val);
+      gap = diff <= 0 ? `<span class="win">à votre niveau</span>` : `à ${fmtGap(d, diff)}`;
     }
     const alt = e.out ? ` <span class="muted">ou ${esc(e.out[st.sex === "M" ? 1 : 2])} en plein air${e.out[0] !== e.name ? ` (${esc(e.out[0])})` : ""}</span>` : "";
-    return `<tr><td>${esc(c.name)} <span class="muted">· ${esc(c.place)}</span></td><td class="dt">${fmtSpan(c.start, c.end)}</td>
+    return `<tr><td>${esc(c.name)}${c.age && !c.name.includes(c.age) ? ` ${esc(c.age)}` : ""} <span class="muted">· ${esc(c.place)}</span></td><td class="dt">${fmtSpan(c.start, c.end)}</td>
       <td class="mk r">${esc(e[st.sex])}</td><td>${alt}${gap ? `${alt ? " · " : ""}${gap}` : ""}</td>
       <td class="hide-s dt">${fmtDate(S.window[0])} au ${fmtDate(S.window[1])}</td></tr>`;
   }
@@ -607,6 +1030,8 @@ async function planPage(athId) {
         const base = ph.end ? (o.end || o.start) : o.start, x = X(addDays(base, ph.from)), w = X(addDays(base, ph.to)) - x;
         g += `<rect class="ph ${ph.k}" x="${x.toFixed(1)}" y="30" width="${w.toFixed(1)}" height="32" rx="3"><title>${ph.name}</title></rect>`;
       });
+    });
+    objs.forEach(o => {
       const x = X(o.start), w = Math.max(5, X(o.end || o.start) - x + 5);
       g += `<rect class="goal" x="${x.toFixed(1)}" y="24" width="${w.toFixed(1)}" height="44" rx="2"><title>${esc(o.name)}, ${fmtSpan(o.start, o.end)}</title></rect>`;
     });
@@ -615,23 +1040,25 @@ async function planPage(athId) {
       <p class="note tl-key"><span class="key goal"></span>objectif <span class="key build"></span>montée en puissance <span class="key sharp"></span>affûtage <span class="key after"></span>après l'objectif <span class="key pick"></span>course choisie</p>`;
   }
 
-  let seq = 0;
+  let seq = 0, lastSugg = [];
   const open = new Set();
   async function draw() {
-    const my = ++seq, objs = objectives(), home = CFG.homes.find(h => h[0] === st.home) || CFG.homes[0], ev = events.get(st.ev) || {};
+    const my = ++seq, home = homeOf(), ev = events.get(st.ev) || {};
     form.querySelectorAll("[data-sex]").forEach(x => x.setAttribute("aria-current", String(x.dataset.sex === st.sex)));
-    st.picks = st.picks.filter(p => p.date >= today && objs.some(o => o.id === p.obj));
-    saved("plan.v1", st);
     const docs = {};
     await Promise.all(["out", "in"].map(async k => { if (ev[k] !== undefined) { try { docs[k] = await getJSON(`plan/${ev[k]}.json`); } catch { /* shown as missing below */ } } }));
     if (my !== seq) return;
-    const dAny = anyD(st.ev), evName = dName(dAny);
-    const rows = champs.map(c => standardRow(c, st.ev, c.indoor && ev.in !== undefined ? ev.in : dAny)).filter(Boolean);
+    lastSugg = drawObjs(docs, ev, home);
+    const objs = objectives();
+    st.picks = st.picks.filter(p => p.date >= today && objs.some(o => o.id === p.obj));
+    saved("plan.v2", st);
+    const dAny = anyD(st.ev), evName = dName(dAny), by = byYear();
+    const rows = champs.filter(c => eligible(c.age || "", by, +c.start.slice(0, 4)) !== false).map(c => standardRow(c, st.ev, c.indoor && ev.in !== undefined ? ev.in : dAny)).filter(Boolean);
     const season = [...objs.map(o => ({ date: o.start, goal: o })), ...st.picks.map(p => ({ date: p.date, pick: p }))].sort((x, y) => (x.date < y.date ? -1 : 1));
     out.innerHTML = `
       ${objs.length ? `<h2>Ma saison</h2>${timeline(objs, st.picks)}
         <ul class="season">${season.map(x => x.goal
-          ? `<li class="goal"><span class="num">${fmtSpan(x.goal.start, x.goal.end)}</span><span><strong>${esc(x.goal.name)}</strong>${x.goal.place ? ` <span class="muted">· ${esc(x.goal.place)}</span>` : ""}</span></li>`
+          ? `<li class="goal"><span class="num">${fmtSpan(x.goal.start, x.goal.end)}</span><span><strong>${esc(x.goal.name)}</strong>${x.goal.place ? ` <span class="muted">· ${esc(x.goal.place)}${x.goal.series && !x.goal.real ? ", date à confirmer" : ""}</span>` : ""}</span></li>`
           : `<li><span class="num">${fmtDay(x.pick.date)}</span><span>${esc(x.pick.name)} <span class="muted">· ${esc(x.pick.venue)}${x.pick.real ? "" : ", date à confirmer"}${x.pick.km ? ` · ${fmtKm(x.pick.km)} de ${esc(x.pick.home)}, environ ${x.pick.chf} CHF aller-retour${x.pick.mode === "plane" ? " en avion" : x.pick.mode === "train" ? " en train" : ""}` : ""}</span> <button type="button" class="link" data-pick="${esc(x.pick.key)}">retirer</button></span></li>`).join("")}</ul>
         ${st.picks.some(p => p.chf) ? `<p class="note">Déplacements des courses choisies : environ <strong class="num">${st.picks.reduce((n, p) => n + (p.chf || 0), 0).toLocaleString("fr-CH")} CHF</strong> aller-retour au total, ${fmtKm(st.picks.reduce((n, p) => n + (p.km || 0), 0) * 2)} parcourus (estimation).</p>` : ""}
         ${st.picks.length ? "" : `<p class="note">Ajoutez des courses depuis les propositions ci-dessous : elles apparaissent ici, dans l'ordre de la saison.</p>`}` : `<p class="empty">Cochez au moins un objectif pour voir les courses proposées.</p>`}
@@ -639,9 +1066,9 @@ async function planPage(athId) {
         const k = o.indoor ? "in" : "out", d = ev[k], doc = docs[k];
         const head = `<section class="list-sec obj"><h2>${esc(o.name)} <span class="muted">· ${fmtSpan(o.start, o.end)}${o.place ? `, ${esc(o.place)}` : ""}</span></h2>`;
         if (d === undefined || !doc) return `${head}<p class="empty">Pas de résultats ${o.indoor ? "en salle" : "en plein air"} pour ${esc(evName)} : aucune proposition pour cet objectif.</p></section>`;
-        const lists = candidates(o, doc, d, home), std = o.standards ? standardRow(o, st.ev, d) : null;
+        const lists = candidates(o, doc, d, home), std = o.standards ? o.standards.events.find(x => (x.labels[st.sex] || []).includes(st.ev)) : null;
         return `${head}
-          ${std ? `<p class="limit">Minima ${esc(evName)} : <strong class="num">${esc(o.standards.events.find(x => (x.labels[st.sex] || []).includes(st.ev))[st.sex])}</strong>, à réaliser du ${fmtDate(o.standards.window[0])} au ${fmtDate(o.standards.window[1])}. <a href="#pmin">Voir les minima</a></p>` : ""}
+          ${std ? `<p class="limit">${o.standards.kind === "limit" ? "Limite" : "Minima"} ${esc(evName)} : <strong class="num">${esc(std[st.sex])}</strong>, à réaliser du ${fmtDate(o.standards.window[0])} au ${fmtDate(o.standards.window[1])}. <a href="#pmin">Voir les limites</a></p>` : ""}
           ${PHASES.map((ph, pi) => {
             const base = ph.end ? (o.end || o.start) : o.start, id = `${o.id}|${ph.k}`, list = lists[pi], n = open.has(id) ? list.length : 4;
             return `<h3>${ph.name} <span class="muted">· ${fmtDate(addDays(base, ph.from)).slice(0, 6)} au ${fmtDate(addDays(base, ph.to))}</span></h3>
@@ -651,36 +1078,40 @@ async function planPage(athId) {
                 : `<p class="empty small">Aucune course connue dans cette période avec ces critères.</p>`}`;
           }).join("")}</section>`;
       }).join("")}
-      ${rows.length ? `<section class="list-sec" id="pmin"><h2>Minima ${esc(evName)}, ${st.sex === "W" ? "femmes" : "hommes"}</h2>
-        <div class="tbl-wrap"><table><thead><tr><th>Championnat</th><th>Dates</th><th class="r">Minima</th><th></th><th class="hide-s">Période de qualification</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
+      ${rows.length ? `<section class="list-sec" id="pmin"><h2>Limites et minima ${esc(evName)}, ${st.sex === "W" ? "femmes" : "hommes"}</h2>
+        <div class="tbl-wrap"><table><thead><tr><th>Championnat</th><th>Dates</th><th class="r">À réaliser</th><th></th><th class="hide-s">Période de qualification</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
         ${champs.filter(c => c.standards).map(c => `<details class="std"><summary>${esc(c.name)} : toutes les épreuves</summary>
           <p class="note">${esc(c.standards.note || "")} <a href="${esc(c.standards.source)}" rel="noopener">Source</a></p>
           <div class="tbl-wrap"><table><thead><tr><th>Épreuve</th><th class="r">Hommes</th><th class="r">Femmes</th>${c.standards.events.some(e => e.out) ? `<th class="hide-s">Équivalent en plein air</th>` : ""}</tr></thead>
           <tbody>${c.standards.events.map(e => `<tr><td>${esc(e.name)}</td><td class="r num">${esc(e.M)}</td><td class="r num">${esc(e.W)}</td>${c.standards.events.some(x => x.out) ? `<td class="hide-s muted">${e.out ? `${esc(e.out[0])} : ${esc(e.out[1])} / ${esc(e.out[2])}` : ""}</td>` : ""}</tr>`).join("")}</tbody></table></div></details>`).join("")}
       </section>` : ""}
-      <p class="note">Les propositions viennent des résultats des saisons ${META.plan.from} à ${META.plan.to} enregistrés par Swiss Athletics : ce sont les compétitions où des athlètes licenciés en Suisse ont couru, en Suisse comme à l'étranger. « Votre zone » compte les résultats entre votre niveau et votre objectif (à 1,5 % près). Les dates ${META.plan.to + 1} sont reprises du jour habituel de chaque compétition : vérifiez-les auprès de l'organisateur avant de réserver. Distances, durées et prix sont des ordres de grandeur calculés d'après la distance : ni des horaires, ni des tarifs. En Suisse, le trajet est compté en train ; à l'étranger, en train et, dès 350 km, en avion, et le plus rapide des deux sert au filtre « week-end ». Train : environ 20 centimes par kilomètre. Avion : environ 4 h autour du vol, 120 CHF plus 12 centimes par kilomètre.</p>`;
+      <p class="note">Les propositions viennent des résultats des saisons ${META.plan.from} à ${META.plan.to} enregistrés par Swiss Athletics : ce sont les compétitions où des athlètes licenciés en Suisse ont couru, en Suisse comme à l'étranger. Les championnats cantonaux et régionaux sont reconnus à leur nom et proposés pour le canton et la région du lieu de départ ; une compétition réservée à une catégorie d'âge (U16 à U23, masters) n'est proposée qu'aux athlètes de cet âge. « Votre zone » compte les résultats entre votre niveau et votre objectif (à 1,5 % près). Les dates à venir sont reprises du jour habituel de chaque compétition : vérifiez-les auprès de l'organisateur avant de réserver. Distances, durées et prix sont des ordres de grandeur calculés d'après la distance : ni des horaires, ni des tarifs. En Suisse, le trajet est compté en train ; à l'étranger, en train et, dès 350 km, en avion, et le plus rapide des deux sert au filtre « week-end ». Train : environ 20 centimes par kilomètre. Avion : environ 4 h autour du vol, 120 CHF plus 12 centimes par kilomètre.</p>`;
   }
 
   form.addEventListener("input", e => {
     const t = e.target;
     if (t.dataset.obj) st.objs = t.checked ? [...new Set([...st.objs, t.dataset.obj])] : st.objs.filter(x => x !== t.dataset.obj);
-    else if (t.name === "weekend") st.weekend = t.checked;
-    else if (["ev", "level", "target", "home", "maxh"].includes(t.name)) {
+    else if (t.dataset.sobj) {
+      const o = lastSugg.find(x => x.id === t.dataset.sobj);
+      st.sobj = t.checked && o ? [...st.sobj, o] : st.sobj.filter(x => x.id !== t.dataset.sobj);
+    } else if (t.name === "weekend") st.weekend = t.checked;
+    else if (t.name === "home") { if (!TOWNS.has(norm(t.value))) return; st.home = TOWNS.get(norm(t.value))[0]; }
+    else if (["ev", "level", "target", "maxh", "by"].includes(t.name)) {
       st[t.name] = t.value.trim();
-      if (t.name === "ev") { st.target = form.target.value = ""; st.level = form.level.value = pbOf(st.ev); }
+      if (t.name === "ev") { st.target = form.target.value = ""; st.level = form.level.value = pbOf(st.ev); st.sobj = []; }
     } else return;
     draw();
   });
   form.addEventListener("click", e => {
     const t = e.target;
-    if (t.dataset.sex) { e.preventDefault(); st.sex = t.dataset.sex; draw(); }
+    if (t.dataset.sex) { e.preventDefault(); st.sex = t.dataset.sex; st.sobj = []; draw(); }
     else if (t.id === "cadd") {
       const name = form.cname.value.trim(), date = form.cdate.value;
       if (!name || !date || date < today) { form.cname.focus(); return; }
       st.custom.push({ name, date, indoor: form.cin.checked });
       form.cname.value = form.cdate.value = ""; form.cin.checked = false;
-      drawObjs(); draw();
-    } else if (t.dataset.del !== undefined) { st.custom.splice(+t.dataset.del, 1); st.picks = []; drawObjs(); draw(); }
+      draw();
+    } else if (t.dataset.del !== undefined) { st.custom.splice(+t.dataset.del, 1); st.picks = []; draw(); }
   });
   out.addEventListener("click", e => {
     const t = e.target;
@@ -692,7 +1123,7 @@ async function planPage(athId) {
       draw();
     }
   });
-  who(); drawObjs(); await draw();
+  who(); await draw();
 }
 
 function notFound(msg) {
@@ -704,7 +1135,8 @@ function notFound(msg) {
 async function route() {
   const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   document.querySelectorAll(".top-nav a").forEach(x => x.removeAttribute("aria-current"));
-  const section = ["l", "cadres", "plan"].includes(parts[0]) ? `#/${parts[0]}` : "#/";
+  const sec = { club: "clubs", canton: "cantons", region: "cantons" }[parts[0]] || parts[0];
+  const section = ["l", "cadres", "plan", "clubs", "cantons"].includes(sec) ? `#/${sec}` : "#/";
   const nav = document.querySelector(`.top-nav a[href="${section}"]`);
   if (nav && (section !== "#/" || !parts.length)) nav.setAttribute("aria-current", "page");
   window.scrollTo(0, 0);
@@ -714,6 +1146,10 @@ async function route() {
     else if (parts[0] === "l") await lists(parts[1], parts[2], parts[3]);
     else if (parts[0] === "cadres") await cadresPage();
     else if (parts[0] === "plan") await planPage(parts[1]);
+    else if (parts[0] === "clubs") await clubsPage();
+    else if (parts[0] === "club" && parts[1]) await clubPage(parts[1]);
+    else if (parts[0] === "cantons") await cantonsPage(parts[1]);
+    else if ((parts[0] === "canton" || parts[0] === "region") && parts[1]) await unitPage(parts[0], parts[1]);
     else home();
   } catch (err) {
     console.error(err);
@@ -728,7 +1164,7 @@ async function start() {
     return;
   }
   document.getElementById("foot").innerHTML = `
-    <p>Site indépendant et non officiel, sans lien avec Swiss Athletics. Données : résultats publics de la base Alabus de Swiss Athletics, dès ${META.first_year} ; courses sur route : listes de World Athletics (parcours certifiés). Dernière performance enregistrée le ${fmtDate(META.last_result)}, mise à jour le ${fmtDate(META.generated)}.</p>
+    <p>Site indépendant et non officiel, sans lien avec Swiss Athletics, fait pour compléter ses listes officielles et non les remplacer. Source de toutes les performances : les résultats publics de la base <a href="https://alabus.swiss-athletics.ch/satweb/faces/bestlist.xhtml" rel="noopener">Alabus de Swiss Athletics</a>, dès ${META.first_year} ; courses sur route : listes de World Athletics (parcours certifiés). Dernière performance enregistrée le ${fmtDate(META.last_result)}, mise à jour le ${fmtDate(META.generated)}.</p>
     <p>Seule l'année de naissance est publiée, et les athlètes de moins de ${META.min_age} ans ne sont pas affichés.${META.contact ? ` Pour corriger ou retirer un profil : <a href="mailto:${esc(META.contact)}">${esc(META.contact)}</a>.` : ""}</p>`;
   window.addEventListener("hashchange", route);
   route();

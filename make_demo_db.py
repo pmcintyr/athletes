@@ -22,13 +22,19 @@ FIRST_M = ["Luca", "Noah", "Elias", "Jonas", "Mathis", "Yanick", "Basile", "Timo
 FIRST_W = ["Léa", "Chloé", "Mia", "Elena", "Noémie", "Sara", "Inès", "Lena", "Julie", "Aline", "Zoé", "Anouk"]
 LAST = ["Demierre", "Rochat", "Bühler", "Favre", "Gerber", "Monnier", "Keller", "Perrin", "Bolomey", "Wyss",
         "Chappuis", "Rossier", "Bärtschi", "Pittet", "Schmid", "Vuilleumier", "Huber", "Cuendet", "Brügger", "Jaquet"]
-CLUBS = ["CA Demo Léman", "LV Beispiel Aare", "FSG Exemple Jura", "TV Muster Seeland", "CEP Fictif Riviera", "LC Probe Rhein"]
+# invented clubs in real towns: the site places each club in a canton from the town in its name
+CLUBS = ["CA Démo Lausanne", "LV Beispiel Bern", "FSG Exemple Delémont", "TV Muster Aarau", "CEP Fictif Neuchâtel", "LC Probe Zürich",
+         "US Esempio Lugano", "LC Fiktiv St. Gallen", "CA Fictif Sion", "TV Beispiel Luzern", "Stade Démo Genève", "TV Muster Wohlen AG",
+         "LA Beispiel Fricktal", "CA Exemple Fribourg", "LC Muster Basel", "Team Sans Lieu"]
 MEETS = [("Meeting de démonstration", "Lausanne"), ("Abendmeeting Beispiel", "Bern"), ("Meeting fictif du Léman", "Genève"),
          ("Pfingstmeeting Muster", "Zofingen"), ("Meeting d'été exemple", "La Chaux-de-Fonds"),
-         # invented meetings in real towns abroad, written like Alabus does ("Town (IOC code)"), for the season planner
-         ("Meeting fictif du Rhin", "Karlsruhe (GER)"), ("Soirée exemple des Flandres", "Oordegem (BEL)"),
-         ("Meeting de démonstration du Rhône", "Lyon (FRA)"), ("Beispiel-Laufnacht", "Regensburg (GER)"),
-         ("Meeting exemple de la Thur", "St. Gallen"), ("Meeting fictif de Macolin", "Magglingen")]
+         # invented meetings in real towns abroad, written like Alabus does ("Town (GER)" or "Town GER"), for the season planner
+         ("Meeting fictif du Rhin", "Karlsruhe (GER)"), ("Soirée exemple des Flandres", "Oordegem BEL"),
+         ("Meeting de démonstration du Rhône", "Lyon FRA"), ("Beispiel-Laufnacht", "Regensburg (GER)"),
+         ("Meeting exemple de la Thur", "St. Gallen"), ("Meeting fictif de Macolin", "Magglingen/Macolin"),
+         ("Championnats vaudois exemple", "Lausanne"), ("Berner Kantonalmeisterschaften Beispiel", "Thun"),
+         ("Zürcher Kantonalmeisterschaften Beispiel", "Zürich Letzigrund"), ("Regionenmeisterschaften West Beispiel U18", "Fribourg"),
+         ("SM U20/U23 Beispiel", "Frauenfeld"), ("Meeting fictif Masters", "Olten")]
 SM = ("Schweizer Meisterschaften Aktive", "Zürich")
 # label, indoor, lower_better, sex ('' = both), base value (M), spread
 EVENTS = [("100 m", 0, 1, "", 10.9, 0.6), ("200 m", 0, 1, "", 22.1, 1.2), ("400 m", 0, 1, "", 49.5, 3.0),
@@ -86,6 +92,8 @@ def main():
                     club = random.choice(CLUBS)
                 for _ in range(random.randint(2, 6)):
                     meet, loc = random.choice(MEETS + [SM] * 1)
+                    if ("U18" in meet and age > 17) or ("U23" in meet and age > 22) or ("Masters" in meet and age < 30):
+                        continue
                     if (meet, indoor) not in days:  # each meeting keeps its place in the calendar from year to year
                         days[(meet, indoor)] = (random.randint(1, 3) if indoor else random.randint(5, 9), random.randint(1, 28))
                     month, day = days[(meet, indoor)]

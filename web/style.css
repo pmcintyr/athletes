@@ -205,6 +205,31 @@ td.dt { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .std { margin-top: 12px; }
 .std summary { cursor: pointer; font-weight: 600; color: var(--link); }
 
+/* clubs, cantons, profile insights */
+.field { font: 600 15px var(--body); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); max-width: 100%; }
+.top-nav { flex-wrap: wrap; gap: 6px 18px; }
+.down { color: var(--amber); font-weight: 600; }
+tr.first td { border-top: 2px solid var(--line); }
+tbody tr.first:first-child td { border-top: 0; }
+a.sub { font-size: 13px; color: var(--muted); }
+.sort { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+.sort:hover { color: var(--ink); }
+table.geo th { vertical-align: bottom; }
+table.geo th.r { max-width: 110px; }
+td.bar { position: relative; min-width: 64px; }
+td.bar::before { content: ""; position: absolute; right: 0; top: 6px; bottom: 6px; width: var(--w); max-width: 100%; background: var(--green-bg); border-radius: 3px 0 0 3px; }
+td.bar span { position: relative; }
+.profile-head .counts { margin-top: 20px; }
+.strong { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 4px 16px 14px; }
+.strong .counts { margin-top: 12px; gap: 12px 36px; }
+.strong .counts span { font-size: 14px; }
+.facts-list { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); gap: 6px; }
+.cols .list-sec { margin-top: 12px; }
+.objs .tag { margin-left: 0; white-space: nowrap; }
+.objs ul.plain { gap: 8px; }
+.objs details { margin: 10px 0 0; }
+.objs details ul { margin-top: 8px; }
+
 /* footer */
 .foot { border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; padding: 22px 0 36px; }
 .foot p { margin: 0 0 6px; max-width: 80ch; }

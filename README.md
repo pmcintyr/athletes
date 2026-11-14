@@ -2,7 +2,7 @@
 
 A free website with a profile for every adult Swiss athlete in the Alabus results database: personal
 bests, progression by season, Swiss championship podiums, all results, head-to-head comparisons,
-season best lists and a season planner. In the spirit of Stathletics. Everything runs on GitHub, for free, with no laptop.
+season best lists, club pages, a comparison of cantons and regions, and a season planner. In the spirit of Stathletics. Everything runs on GitHub, for free, with no laptop.
 
 ```
 Alabus ──> GitHub Actions, every night ──> build_site.py ──> GitHub Pages (pmcintyr.github.io/athletes)
@@ -21,7 +21,7 @@ The workflow `.github/workflows/update.yml` starts every night at 03:17 (Swiss w
 3. Saves the database again (keeps the 2 newest copies) and records `status.json` in the repository.
 4. Builds the site with `build_site.py` and publishes it on GitHub Pages.
 
-Changing the site code, `build_site.py`, `cadres.json`, `planner.json` or `removals.txt` on the main branch rebuilds and publishes
+Changing the site code, `build_site.py`, `cadres.json`, `planner.json`, `geo.json` or `removals.txt` on the main branch rebuilds and publishes
 the site from the stored data, without downloading anything.
 
 ## Everyday tasks (all from a phone)
@@ -35,6 +35,7 @@ the site from the stored data, without downloading anything.
 | New cadre lists or limits (each autumn) | Edit `cadres.json`: replace the athletes rows, the dates and the PDF links (or ask Claude) |
 | New championship dates or entry standards | Edit `planner.json`: the `championships` rows, with the link they were copied from |
 | A meeting shows no travel estimate | The build log lists "venues without coordinates": add them under `venues` in `planner.json` |
+| A club is in the wrong canton, or in none | The build log lists the clubs "not placed": add `"Club name": ["VD", "Town"]` under `clubs` in `geo.json` |
 | Something failed | GitHub emails you; the run page shows the reason at the bottom of the step that failed |
 
 ## Privacy
@@ -58,7 +59,28 @@ the site from the stored data, without downloading anything.
 | `web/` | The page itself: `index.html`, `app.js`, `style.css`, fonts |
 | `make_demo_db.py` | Fake database to preview the site without real data |
 | `planner.json` | Season planner: championships to pick as objectives, their entry standards, departure cities, venue coordinates the lookup misses, Omio link settings |
+| `geo.json` | The three regions and their cantons, canton names, corrections for clubs the automatic lookup places wrongly or not at all |
 | `cadres.json` | Official Swiss Athletics cadre lists (Swiss Starters, Swiss Starters Future) and Swiss Starters limits, shown on profiles and the Cadres page |
+
+## Who it is for
+
+* **Athletes**: the profile shows, on top of records, progression and head-to-heads: the strongest event in depth
+  (rank in Switzerland, in the canton and in the club, season against last season), the distance to each limit
+  (Swiss championships, Swiss Starters, international standards), the athletes ranked just before and after, and
+  the meetings where personal bests were set. Swiss Olympic Talent Cards are not shown: they are awarded on an
+  assessment (PISTE), there is no published mark to compare with.
+* **Club coaches**: `#/club/<id>` lists every active adult athlete of the club with this season's best, last
+  season's, the gain, the personal best and the Swiss rank, and the club's rank in each event (the rank of its best
+  athlete among clubs). Athletes under 18 are not on the site, so youth squads are missing by design.
+* **Swiss Athletics, cantonal associations**: `#/cantons` compares the cantons and the three regions of the regional
+  championships (clubs, active athletes, places in the Swiss top 10, podiums at Swiss championships);
+  `#/canton/VD` and `#/region/ouest` give the five best per event. Everything comes from public Alabus results and
+  every page says so.
+
+A club's canton comes from the town in its name (`TV Länggasse Bern`, `Stade Genève`): `build_site.py` looks the
+words up in the GeoNames list of Swiss places, then in `geo.json` (`areas` for regional names like Fricktal,
+`clubs` for corrections). An athlete counts for the canton of the latest club. "Active" means a result in the
+last two seasons. Ranks are for the latest season that has enough results (outdoor and indoor decided separately).
 
 ## Season planner (`#/plan`)
 
@@ -77,6 +99,14 @@ the page proposes races in three windows: 7 to 3 weeks before, 3 weeks to 6 days
   the faster of the two counting for the filter. The formulas are in `travel()` in `web/app.js`. The route link opens Google Maps; the Omio link opens a prefilled search only
   once city ids from Omio's affiliate Deep Link Creator file are added under `omio.ids` in `planner.json`
   (`omio.params` takes the affiliate marker).
+* Objectives are matched to the athlete: Swiss championships show their entry limit and the gap to it,
+  international championships far from the athlete's level are folded away, and the page adds objectives read
+  from the results: championships of the athlete's canton and region (recognised by their name:
+  Kantonalmeisterschaften, championnats vaudois, Regionenmeisterschaften ...) and the strongest meetings whose
+  field the athlete's level fits in. A competition reserved for an age group (U16 to U23, masters, read from its
+  name and confirmed by who took part) is only offered to athletes of that age, so the birth year matters.
+* The departure point is any Swiss place and everything is recomputed when it changes; starting from a profile
+  it is the town of the athlete's club.
 * Choices are kept in the visitor's browser only.
 
 ## One-time setup (already done for pmcintyr/athletes)

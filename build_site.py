@@ -13,6 +13,10 @@ Output (site/ by default) is plain static files for GitHub Pages: no server, no 
   lists/<year>.json               top N per discipline, sex, indoor/outdoor and season
   plan/<d>.json, planner.json     season planner: marks run at each meeting over the last seasons (no names),
                                   venue coordinates, championships and entry standards from planner.json
+  rk/<xyz>.json                   national, cantonal and club rank of each active athlete, and the nearest rivals
+  club/<id>.json, clubs.json      one page of data per club: athletes, season bests, the club's rank in each event
+  canton/<XX>.json, region/<id>.json, geo.json, towns.json
+                                  cantons and regions (geo.json: which canton each club is in), Swiss places
   p/<id>.html                     plain HTML page per recently active athlete, for Google and link previews
   sitemap*.xml, robots.txt        written when --base-url is given
   meta.json                       disciplines, seasons, counts, build date
@@ -405,29 +409,71 @@ def geo_norm(x):
     return " ".join(re.sub(r"[^a-z0-9]+", " ", n).split())
 
 
+CAPITALS = {"AG": "Aarau", "AI": "Appenzell", "AR": "Herisau", "BE": "Bern", "BL": "Liestal", "BS": "Basel", "FR": "Fribourg",
+            "GE": "Genève", "GL": "Glarus", "GR": "Chur", "JU": "Delémont", "LU": "Luzern", "NE": "Neuchâtel", "NW": "Stans",
+            "OW": "Sarnen", "SG": "St. Gallen", "SH": "Schaffhausen", "SO": "Solothurn", "SZ": "Schwyz", "TG": "Frauenfeld",
+            "TI": "Bellinzona", "UR": "Altdorf", "VD": "Lausanne", "VS": "Sion", "ZG": "Zug", "ZH": "Zürich"}
+# Words of club names that are not the town, even where a Swiss place has that name.
+CLUB_STOP = {"stade", "club", "sport", "sports", "team", "athletics", "athletisme", "leichtathletik", "atletica", "athletic", "run",
+             "more", "track", "old", "boys", "olympic", "satus", "gym", "turnverein", "les", "des", "see", "lac", "berg", "tal"}
+
+
 class Gazetteer:
-    """Venue name -> [lat, lon, country]. planner.json 'venues' first, then the GeoNames city list of the optional
+    """Venue or club name -> place. planner.json 'venues' first, then the GeoNames city list of the optional
     geonamescache package (places of 1000+ inhabitants, with their names in other languages)."""
 
     def __init__(self, manual):
-        self.manual = {str(k).strip(): v for k, v in (manual or {}).items()}
-        self.idx, self.cache, self.missed = None, {}, defaultdict(int)
+        self.manual = {geo_norm(k): v for k, v in (manual or {}).items()}
+        self.idx, self.swiss, self.cache, self.missed = None, defaultdict(list), {}, defaultdict(int)
         try:
             import geonamescache
         except ImportError:
-            print("geonamescache is not installed: planner venues get no coordinates (pip install geonamescache)")
+            print("geonamescache is not installed: venues and clubs get no coordinates (pip install geonamescache)")
             return
         idx = {}
         for c in geonamescache.GeonamesCache(min_city_population=1000).get_cities().values():
             cc, pop = c["countrycode"], int(c.get("population") or 0)
+            lat, lon = round(float(c["latitude"]), 3), round(float(c["longitude"]), 3)
+            adm = s(c.get("admin1code")) if cc == "CH" else ""
             names = [(c["name"], 1)] + ([(n, 0) for n in c.get("alternatenames") or []] if cc in EUROPE else [])
             for n, primary in names:
                 k = (cc, geo_norm(n))
-                if k[1] and (k not in idx or (primary, pop) > idx[k][0]):
-                    idx[k] = ((primary, pop), round(float(c["latitude"]), 3), round(float(c["longitude"]), 3))
+                if not k[1]:
+                    continue
+                if k not in idx or (primary, pop) > idx[k][0]:
+                    idx[k] = ((primary, pop), lat, lon, adm, c["name"])
+                if cc == "CH":
+                    self.swiss[k[1]].append(((primary, pop), lat, lon, adm, c["name"]))
         self.idx = idx
 
+    def towns(self):
+        """Swiss places for the planner's departure field: [name, lat, lon, canton], one per name."""
+        best = {}
+        for hits in self.swiss.values():
+            for (primary, pop), lat, lon, adm, name in hits:
+                if primary and adm in CAPITALS and (name not in best or pop > best[name][0]):
+                    best[name] = (pop, [name, lat, lon, adm])
+        return [v[1] for _, v in sorted(best.items(), key=lambda x: geo_norm(x[0]))]
+
+    def swiss_place(self, name, canton=None):
+        """A Swiss place by name -> (lat, lon, canton, name, inhabitants); with several places of that name, the one
+        in `canton`, else the largest."""
+        n = geo_norm(name)
+        m = self.manual.get(n)
+        if m:
+            return (m[0], m[1], m[2] if len(m) > 2 else (canton or ""), name, 10 ** 9)
+        hits = []
+        for cand in (n, re.sub(r"^st ", "sankt ", n), re.sub(r"^st ", "saint ", n)):
+            hits += self.swiss.get(cand, [])
+        if canton and any(h[3] == canton for h in hits):
+            hits = [h for h in hits if h[3] == canton]
+        if not hits:
+            return None
+        h = max(hits, key=lambda h: h[0])
+        return (h[1], h[2], h[3], h[4], h[0][1])
+
     def find(self, venue):
+        """-> [lat, lon, country (IOC code), canton] or None."""
         v = s(venue).strip()
         if v not in self.cache:
             self.cache[v] = self._find(v)
@@ -436,23 +482,102 @@ class Gazetteer:
         return self.cache[v]
 
     def _find(self, v):
-        m = re.search(r"\(([A-Z]{3})\)\s*$", v)
-        ioc, base = (m.group(1), v[:m.start()]) if m else ("SUI", v)  # no code: Switzerland, as in alabus_scraper.py
-        if v in self.manual:
-            return [self.manual[v][0], self.manual[v][1], ioc]
-        cc = IOC_ISO.get(ioc)
-        if not v or self.idx is None or not cc:
+        # Alabus writes "Karlsruhe (GER)" or "Madrid ESP"; no code means Switzerland. "Chailly-sur-Montreux (VD)" is a canton.
+        ioc, base = "SUI", v
+        m = re.search(r"(?:\(([A-Z]{3})\)|\s([A-Z]{3}))\s*$", v)
+        if m and (m.group(1) or m.group(2)) in IOC_ISO:
+            ioc, base = m.group(1) or m.group(2), v[:m.start()]
+        for text in (v, base):
+            hit = self.manual.get(geo_norm(text))
+            if hit:
+                return [hit[0], hit[1], ioc, hit[2] if len(hit) > 2 else ""]
+        canton = None
+        m = re.search(r"\(([A-Z]{2})\)\s*$", base)
+        if m and m.group(1) in CAPITALS:
+            canton, base = m.group(1), base[:m.start()]
+        parts = [base] + [x for x in re.split(r"[/,()]| - ", base) if x.strip()]
+        if ioc == "SUI":
+            toks = geo_norm(base).split()
+            parts += [" ".join(toks[:n]) for n in range(len(toks) - 1, 0, -1)]  # "Zürich Letzigrund" -> "Zürich"
+            parts += [t for t in toks if len(t) >= 4 and t not in CLUB_STOP]    # "Sportanlage Wintersried Ibach" -> "Ibach"
+            for text in parts:
+                hit = self.swiss_place(text, canton)
+                if hit:
+                    return [hit[0], hit[1], ioc, hit[2]]
             return None
-        tries = [(base, 0)] + [(base.split(sep)[0], 0) for sep in ("/", ",", " - ") if sep in base]
-        toks = geo_norm(base).split()
-        tries += [(" ".join(toks[:n]), 5000) for n in range(len(toks) - 1, 0, -1)]  # "Zürich Letzigrund" -> "Zürich"
-        for text, min_pop in tries:
-            n = geo_norm(text)
-            for cand in (n, re.sub(r"^st ", "sankt ", n), re.sub(r"^st ", "saint ", n)):
-                hit = self.idx.get((cc, cand))
-                if hit and hit[0][1] >= min_pop:
-                    return [hit[1], hit[2], ioc]
+        cc = IOC_ISO.get(ioc)
+        if self.idx is None:
+            return None
+        for text in parts:
+            hit = self.idx.get((cc, geo_norm(text)))
+            if hit:
+                return [hit[1], hit[2], ioc, ""]
         return None
+
+    def club(self, club, cfg):
+        """Where a club is, from the town in its name -> [canton, town, lat, lon] (town parts None if only the canton
+        is known) or None. geo.json 'clubs' decides first, then towns, then the regional words of 'areas'."""
+        ov = (cfg.get("clubs") or {}).get(club)
+        if ov:
+            canton, town = (ov, None) if isinstance(ov, str) else (ov[0], ov[1] if len(ov) > 1 else None)
+            if not isinstance(ov, str) and len(ov) > 3:
+                return [canton, town, ov[2], ov[3]]
+            hit = self.swiss_place(town, canton) if town else None
+            return [canton, town if hit else None, hit[0] if hit else None, hit[1] if hit else None]
+        m = re.search(r"(?:^|\s)\(?([A-Z]{2})\)?\s*$", club)  # "TV Wohlen AG"
+        code = m.group(1) if m and m.group(1) in CAPITALS else None
+        toks = geo_norm(club[:m.start()] if code else club).split()
+        for n in range(min(4, len(toks)), 0, -1):
+            found = []
+            for i in range(len(toks) - n + 1):
+                gram = " ".join(toks[i:i + n])
+                if n == 1 and (len(gram) < 3 or gram in CLUB_STOP):
+                    continue
+                hit = self.swiss_place(gram, code)
+                if hit:
+                    found.append(((bool(code) and hit[2] == code, hit[4]), hit))
+            if found:
+                hit = max(found, key=lambda x: x[0])[1]
+                return [hit[2], hit[3], hit[0], hit[1]]
+        areas = cfg.get("areas") or {}
+        for n in (3, 2, 1):
+            for i in range(len(toks) - n + 1):
+                if " ".join(toks[i:i + n]) in areas:
+                    return [areas[" ".join(toks[i:i + n])], None, None, None]
+        return [code, None, None, None] if code else None
+
+
+REGIONAL_RE = re.compile(r"regionen ?meisterschaft|\brm\b|championnats? regiona|championnats? romand|campionati regionali|"
+                         r"\b(ost|inner|zentral|nordwest|west)schweizer (hallen ?)?meisterschaft")
+CANTONAL_RE = re.compile(r"kantonal ?meisterschaft|kantonale? (hallen ?)?meisterschaft|\bkm\b|kantonalfinal|"
+                         r"championnats? (cantona|vaudois|genevois|fribourgeois|valaisan|neuchatelois|jurassien|bernois|tessinois)|"
+                         r"campionati (ticinesi|cantonali)|"
+                         r"\b(berner|zurcher|aargauer|basler|luzerner|st galler|thurgauer|bundner|solothurner|schaffhauser|schwyzer|zuger|"
+                         r"urner|glarner|appenzeller|walliser|freiburger|tessiner|nidwaldner|obwaldner|baselbieter)\b.{0,14}meisterschaft")
+
+
+def champ_kind(meeting):
+    """0 = meeting, 1 = Swiss championship, 2 = regional championship, 3 = cantonal championship (from the name)."""
+    low = s(meeting).lower()
+    if is_championship(low) and not any(x in low for x in NOT_SWISS):
+        return 1
+    n = geo_norm(meeting)
+    return 2 if REGIONAL_RE.search(n) else 3 if CANTONAL_RE.search(n) else 0
+
+
+def age_limit(meeting, ages):
+    """Age category a competition is reserved for, read from its name and confirmed by who took part:
+    'U16' to 'U23', 'M' (masters), '' = open. `ages`: ages of the athletes with a result there."""
+    n = geo_norm(meeting)
+    if re.search(r"\bmasters?\b|senioren|veteran", n):
+        return "M" if ages and min(ages) >= 30 else ""
+    found = [int(x) for x in re.findall(r"\bu ?(14|16|18|20|23)\b", n)]
+    if not found and re.search(r"nachwuchs|jeunesse|releve|giovanil|schuler|ecoliers|jugend|junior", n):
+        found = [20]
+    if not found:
+        return ""
+    top = max(found)
+    return f"U{top}" if ages and max(ages) < top else ""  # older athletes took part: open to them too
 
 
 def series_key(meeting):
@@ -470,13 +595,13 @@ def planner(con, disc, out, cfg, gaz):
     if not cfg or last is None:
         return None
     since = int(last) - int(cfg.get("seasons", 3)) + 1
-    q = """SELECT d.d, r.sex, r.meeting, r.location, r.date, r.mark_value
+    q = """SELECT d.d, r.sex, r.meeting, r.location, r.date, r.mark_value, r.season - r.by
            FROM r JOIN ath a ON a.athlete_key = r.athlete_key
                   JOIN disc d ON d.indoor = r.indoor AND d.discipline = r.discipline
            WHERE r.src < 2 AND r.season >= ? AND COALESCE(r.hand_timed, 0) = 0 AND r.sex IN ('M', 'W')
              AND r.meeting IS NOT NULL AND r.date GLOB '[12][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9]'
            ORDER BY d.d"""
-    written, n_series = [], 0
+    written, n_series, kinds = [], 0, defaultdict(int)
 
     def flush(d, groups):
         nonlocal n_series
@@ -496,8 +621,11 @@ def planner(con, disc, out, cfg, gaz):
                         prev["day"], prev["n"] = day, len(g["days"][day])
                 else:
                     editions.append({"day": day, "last": day, "n": len(g["days"][day]), "vals": list(g["days"][day])})
-            doc[sex].append([g["name"], venues(venue), int(is_championship(g["name"].lower())),
-                             [[e["day"], sorted((round(v, 2) for v in e["vals"]), reverse=not lower)] for e in editions]])
+            kind = champ_kind(g["name"])
+            kinds[kind] += 1
+            doc[sex].append([g["name"], venues(venue), kind,
+                             [[e["day"], sorted((round(v, 2) for v in e["vals"]), reverse=not lower)] for e in editions],
+                             age_limit(g["name"], g["ages"])])
         for sex in doc:
             doc[sex].sort(key=lambda x: -sum(len(e[1]) for e in x[3]))
             n_series += len(doc[sex])
@@ -506,7 +634,7 @@ def planner(con, disc, out, cfg, gaz):
         written.append(d)
 
     cur, groups = None, {}
-    for d, sex, meeting, loc, day, value in con.execute(q, (since,)):
+    for d, sex, meeting, loc, day, value, age in con.execute(q, (since,)):
         if d != cur:
             flush(cur, groups)
             cur, groups = d, {}
@@ -516,17 +644,158 @@ def planner(con, disc, out, cfg, gaz):
             Date.fromisoformat(day)
         except ValueError:
             continue
-        g = groups.setdefault((sex, series_key(meeting), s(loc).strip()), {"name": "", "latest": "", "days": defaultdict(list)})
+        g = groups.setdefault((sex, series_key(meeting), s(loc).strip()), {"name": "", "latest": "", "days": defaultdict(list), "ages": set()})
         if day >= g["latest"]:
             g["latest"], g["name"] = day, re.sub(r"\s*\((WRC|WCR)\)", "", s(meeting)).strip()
         g["days"][day].append(value)
+        if age is not None:
+            g["ages"].add(int(age))
     flush(cur, groups)
     missed = sorted(gaz.missed.items(), key=lambda x: -x[1])
-    print(f"planner: {len(written)} disciplines, {n_series:,} meeting series since {since}"
-          + (f", venues without coordinates: {', '.join(v for v, _ in missed[:40])}"
-             + (f" and {len(missed) - 40} more" if len(missed) > 40 else "") if missed and gaz.idx is not None else ""))
+    print(f"planner: {len(written)} disciplines, {n_series:,} meeting series since {since} "
+          f"({kinds[1]} Swiss, {kinds[2]} regional, {kinds[3]} cantonal championships)"
+          + (f", {len(missed)} venues without coordinates: {', '.join(v for v, _ in missed[:150])}"
+             + (f" and {len(missed) - 150} more" if len(missed) > 150 else "") if missed and gaz.idx is not None else ""))
     dump(out / "planner.json", {k: v for k, v in cfg.items() if k in ("homes", "championships", "omio")})
     return {"disc": written, "from": since, "to": int(last)}
+
+
+# ---------- clubs, cantons and regions ----------
+def rank_groups(entries):
+    """entries: [(sortv, key...)] of one event -> the same sorted, each with its rank (equal marks share a rank)."""
+    entries.sort(key=lambda e: e[0])
+    out, prev, rk = [], None, 0
+    for pos, e in enumerate(entries, 1):
+        if e[0] != prev:
+            rk, prev = pos, e[0]
+        out.append((rk, e))
+    return out
+
+
+def geography(out, disc, active, cfg, gaz, club_geo, years, min_field=20):
+    """active: athletes with a result in the last two seasons, each with its club, canton and season bests.
+    Writes the rank shards (rk/), one file per club, canton and region, and the comparison of cantons (geo.json).
+    `years` = (outdoor, indoor) season the ranks are for: the latest one with enough results."""
+    for sub in ("rk", "club", "canton", "region"):
+        shutil.rmtree(out / sub, ignore_errors=True)
+        (out / sub).mkdir(parents=True, exist_ok=True)
+    region_of = {c: r["id"] for r in cfg.get("regions", []) for c in r["cantons"]}
+    ref = lambda d: years[disc[d][0]]
+    events = defaultdict(list)
+    for i, a in enumerate(active):
+        for (d, season), (sv, mark) in a["sb"].items():
+            if season == ref(d) and discipline_order(disc[d][1])[0] != 5:
+                events[(d, a["sex"])].append((sv, i, mark))
+
+    ranks = defaultdict(list)          # athlete -> [d, season, national rank, of, canton rank, of, club rank, of]
+    rivals = {}                        # athlete -> (score, d, neighbours)
+    club_ev = defaultdict(list)        # club id -> [d, sex, rank among clubs, clubs, mark, pid, name, athletes of the club]
+    best = {"canton": defaultdict(lambda: defaultdict(list)), "region": defaultdict(lambda: defaultdict(list))}
+    stat = defaultdict(lambda: defaultdict(int))
+    for (d, sex), entries in sorted(events.items()):
+        ranked = rank_groups(entries)
+        n, main = len(ranked), len(ranked) >= min_field
+        seen = {"canton": defaultdict(int), "club": defaultdict(int)}
+        sizes = {"canton": defaultdict(int), "club": defaultdict(int)}
+        for _, (_, i, _) in ranked:
+            for kind in sizes:
+                if active[i][kind]:
+                    sizes[kind][active[i][kind]] += 1
+        club_order = []
+        for pos, (rk, (sv, i, mark)) in enumerate(ranked):
+            a, row = active[i], [d, ref(d), rk, n]
+            for kind in ("canton", "club"):
+                k = a[kind]
+                if k:
+                    seen[kind][k] += 1
+                    row += [seen[kind][k], sizes[kind][k]]
+                else:
+                    row += [None, None]
+            ranks[i].append(row)
+            if a["club"] and a["club"] not in club_order:
+                club_order.append(a["club"])
+                club_ev[a["club"]].append([d, sex, len(club_order), 0, mark, a["pid"], a["n"], sizes["club"][a["club"]]])
+            if main:
+                score = (rk / n, -n)
+                if i not in rivals or score < rivals[i][0]:
+                    near = [ranked[j] for j in range(max(0, pos - 3), min(n, pos + 4)) if j != pos]
+                    rivals[i] = (score, d, [[active[e[1]]["pid"], active[e[1]]["n"], e[2], r] for r, e in near])
+                can = a["canton"]
+                if can:
+                    for kind, key in (("canton", can), ("region", region_of.get(can))):
+                        if key and len(best[kind][key][(sex, d)]) < 5:
+                            best[kind][key][(sex, d)].append([len(best[kind][key][(sex, d)]) + 1, mark, a["pid"], a["n"], a["by"], a["c"], rk])
+                    if rk <= 10:
+                        stat[can]["top10"] += 1
+                    if rk <= 3:
+                        stat[can]["top3"] += 1
+                    if rk == 1:
+                        stat[can]["lead"] += 1
+        for club in club_order:
+            club_ev[club][-1][3] = len(club_order)
+
+    shards = defaultdict(dict)
+    for i, a in enumerate(active):
+        if ranks.get(i):
+            e = {"r": sorted(ranks[i], key=lambda r: (r[2] / r[3], r[0]))}
+            if i in rivals:
+                e["v"] = [rivals[i][1], rivals[i][2]]
+            shards[a["pid"][:3]][a["pid"]] = e
+    for k, v in shards.items():
+        dump(out / "rk" / f"{k}.json", v)
+
+    clubs = defaultdict(list)
+    for i, a in enumerate(active):
+        if a["club"]:
+            clubs[a["club"]].append(i)
+        if a["canton"]:
+            stat[a["canton"]]["ath"] += 1
+            stat[a["canton"]]["pod"] += a["pod"]
+    index, by_canton, unplaced = [], defaultdict(list), [0, 0]
+    for cid, members in sorted(clubs.items()):
+        name = active[max(members, key=lambda i: active[i]["last"])]["c"]
+        g = club_geo(name)
+        canton = g[0] if g else None
+        rows = []
+        for i in sorted(members, key=lambda i: norm_name(active[i]["n"])):
+            a, nat = active[i], {r[0]: r[2] for r in ranks.get(i, [])}
+            evs = sorted({d for d, _ in a["sb"]}, key=lambda d: (nat.get(d, 10 ** 6), d))
+            rows.append([a["pid"], a["n"], a["by"], a["sex"],
+                         [[d, (a["sb"].get((d, ref(d))) or [0, None])[1], (a["sb"].get((d, ref(d) - 1)) or [0, None])[1],
+                           a["pb"].get(d), nat.get(d)] for d in evs]])
+        dump(out / "club" / f"{cid}.json", {"n": name, "g": g, "a": rows, "ev": sorted(club_ev.get(cid, []), key=lambda e: (e[2] / max(e[3], 1), e[0]))})
+        index.append([cid, name, canton, len(members)])
+        if canton:
+            stat[canton]["clubs"] += 1
+            by_canton[canton].append([cid, name, len(members)])
+        else:
+            unplaced[0] += 1
+            unplaced[1] += len(members)
+
+    def unit_file(kind, key, cantons):
+        b = best[kind].get(key, {})
+        dump(out / kind / f"{key}.json", {
+            "clubs": sorted((c for k in cantons for c in by_canton.get(k, [])), key=lambda c: (-c[2], c[1])),
+            "best": {sex: [[d, rows] for (sx, d), rows in sorted(b.items(), key=lambda x: x[0][1]) if sx == sex] for sex in ("M", "W")}})
+    names = cfg.get("cantons") or {}
+    for canton in names:
+        unit_file("canton", canton, [canton])
+    for r in cfg.get("regions", []):
+        unit_file("region", r["id"], r["cantons"])
+    keys = ("clubs", "ath", "top10", "top3", "lead", "pod")
+    dump(out / "clubs.json", index)
+    dump(out / "geo.json", {
+        "years": list(years), "min_field": min_field,
+        "regions": [{k: r.get(k) for k in ("id", "name", "short", "cantons", "source")} for r in cfg.get("regions", [])],
+        "cantons": {c: [names[c], region_of.get(c)] + [stat[c][k] for k in keys] for c in names},
+        "capitals": {c: (lambda h: [CAPITALS[c], h[0], h[1]] if h else None)(gaz.swiss_place(CAPITALS[c], c)) for c in names if c in CAPITALS},
+        "unplaced": unplaced})
+    dump(out / "towns.json", gaz.towns())
+    lost = sorted(((n, name) for cid, name, canton, n in index if not canton), reverse=True)
+    print(f"clubs: {len(index)} with active athletes, {len(index) - unplaced[0]} placed in a canton"
+          + (f"; not placed ({unplaced[1]} athletes): {', '.join(f'{name} ({n})' for n, name in lost[:120])}"
+             + (f" and {len(lost) - 120} more" if len(lost) > 120 else "") if lost else ""))
+    return {"years": list(years), "clubs": len(index)}
 
 
 # ---------- static HTML page per athlete (for search engines and link previews) ----------
@@ -599,6 +868,24 @@ def build(a):
     max_by = datetime.now().year - a.min_age
     print(f"{n_ath:,} athletes to publish ({minors:,} under {a.min_age} left out, {gone} removed on request)")
 
+    pf = Path(a.planner) if a.planner else None
+    pcfg = json.loads(pf.read_text(encoding="utf-8")) if pf and pf.exists() else None
+    gf = Path(a.geo) if a.geo else None
+    gcfg = json.loads(gf.read_text(encoding="utf-8")) if gf and gf.exists() else None
+    gaz = Gazetteer((pcfg or {}).get("venues"))
+    geo_cache = {}
+
+    def club_geo(club):
+        if club not in geo_cache:
+            geo_cache[club] = gaz.club(club, gcfg) if gcfg and club else None
+        return geo_cache[club]
+    # Season the ranks are for, outdoor and indoor: the latest one, unless it has barely started.
+    latest = con.execute("SELECT MAX(season) FROM r WHERE src < 2").fetchone()[0] or datetime.now().year
+    counts = dict(((i, y), n) for i, y, n in con.execute(
+        "SELECT indoor, season, COUNT(*) FROM r WHERE src < 2 AND season >= ? GROUP BY indoor, season", (latest - 1,)))
+    ref_years = tuple(latest if counts.get((i, latest), 0) >= 0.3 * counts.get((i, latest - 1), 0) else latest - 1 for i in (0, 1))
+    active = []
+
     for sub in ("a", "idx", "lists", "p"):  # plan/ is rebuilt in planner()
         shutil.rmtree(out / sub, ignore_errors=True)
         (out / sub).mkdir(parents=True, exist_ok=True)
@@ -608,7 +895,7 @@ def build(a):
 
     # Stream every result, sorted by public id, newest first: one athlete in memory at a time.
     q = """SELECT a.pid, d.d, r.date, r.mark_raw, r.mark_value, r.wind, r.place, r.round_code, r.meeting, r.location,
-                  r.club, r.name, r.by, r.sex, r.nat, r.hand_timed, r.lower_better, r.indoor, r.discipline, r.season
+                  r.club, r.name, r.by, r.sex, r.nat, r.hand_timed, r.lower_better, r.indoor, r.discipline, r.season, r.src
            FROM r JOIN ath a ON a.athlete_key = r.athlete_key
                   JOIN disc d ON d.indoor = r.indoor AND d.discipline = r.discipline
            ORDER BY a.pid, r.date DESC, d.d"""
@@ -637,6 +924,17 @@ def build(a):
         if lim:
             prof["lim"] = [x[1:] for x in lim]
             cadres.achieved.extend([pid, prof["n"], prof["by"], prof["c"], prof["s"], *x, [k[0] for k in ks]] for x in lim)
+        g = club_geo(prof["c"])
+        if g:
+            prof["g"] = g
+        last_season = max(r["season"] for r in rows)
+        if last_season >= latest - 1:
+            recent = best_by([r for r in rows if r["season"] >= latest - 2 and not r["hand"] and r["src"] < 2], lambda r: (r["d"], r["season"]))
+            active.append({"pid": pid, "n": prof["n"], "by": prof["by"], "sex": prof["s"], "c": prof["c"], "club": slug(prof["c"]),
+                           "canton": g[0] if g else None, "last": rows[0]["date"],
+                           "sb": {k: (r["sortv"], mark_text(r["mark"])) for k, r in recent.items()},
+                           "pb": {r[0]: r[1] for r in prof["pb"]},
+                           "pod": sum(1 for m in prof["m"] if m[4] == 0 and m[0] == latest)})
         shard[pid] = prof
         entry = [pid, prof["n"], prof["by"], prof["c"], prof["s"]]
         for pref in {t[:2] for t in name_tokens(prof["n"]) if len(t) >= 2}:
@@ -650,7 +948,7 @@ def build(a):
 
     for row in con.execute(q):
         (pid, d, date, mark, value, wind, place, rnd, meeting, loc, club, name, by, sex, nat, hand, lower, indoor,
-         label, season) = row
+         label, season, src) = row
         if pid != cur_pid:
             if cur:
                 finish(cur_pid, cur)
@@ -660,7 +958,7 @@ def build(a):
             cur, cur_pid, shard_id = [], pid, pid[:3]
         cur.append({"d": d, "date": s(date), "mark": mark, "value": value, "wind": wind, "place": place,
                     "round": s(rnd), "meeting": s(meeting), "loc": s(loc), "club": s(club), "name": s(name),
-                    "by": by, "sex": s(sex), "nat": s(nat), "hand": int(hand or 0), "season": int(season), "label": label,
+                    "by": by, "sex": s(sex), "nat": s(nat), "hand": int(hand or 0), "season": int(season), "label": label, "src": src,
                     "sortv": value if lower == 1 else -value,
                     "assisted": int(bool(is_wind_event(label, indoor) and wind is not None and wind > 2.0))})
     if cur:
@@ -686,7 +984,8 @@ def build(a):
     if cadres.year:
         L = cadres.data["limits"]
         cad["limits"] = {k: L.get(k) for k in ("name", "year", "for", "source")} | {
-            "events": [[e["name"], e["M"], e["W"], int(bool(e["labels"].get("M") or e["labels"].get("W")))] for e in L["events"]],
+            "events": [[e["name"], e["M"], e["W"], int(bool(e["labels"].get("M") or e["labels"].get("W"))),
+                        e["labels"].get("M", []), e["labels"].get("W", [])] for e in L["events"]],
             "achieved": sorted(cadres.achieved, key=lambda x: (x[5], x[4], norm_name(x[1])))}
         print(f"{L['name']} {cadres.year}: {len(cadres.achieved)} limits reached")
     dump(out / "cadres.json", cad)
@@ -712,9 +1011,8 @@ def build(a):
     for y in years:
         dump(out / "lists" / f"{y}.json", lists[y])
 
-    pf = Path(a.planner) if a.planner else None
-    pcfg = json.loads(pf.read_text(encoding="utf-8")) if pf and pf.exists() else None
-    plan = planner(con, disc, out, pcfg, Gazetteer(pcfg.get("venues"))) if pcfg else None
+    plan = planner(con, disc, out, pcfg, gaz) if pcfg else None
+    geo = geography(out, disc, active, gcfg, gaz, club_geo, ref_years) if gcfg else None
 
     first_year, last_result = con.execute("SELECT MIN(season), MAX(date) FROM r").fetchone()
     dump(out / "meta.json", {
@@ -722,7 +1020,7 @@ def build(a):
         "last_result": s(last_result), "first_year": first_year, "years": years, "athletes": n_ath,
         "results": n_res, "full_results": "allresults" in have, "disc": disc,
         "cadres": {c["code"]: c["name"] for c in cadres.lists}, "limit_name": (cadres.data.get("limits") or {}).get("name"),
-        "limit_year": cadres.year, "plan": plan})
+        "limit_year": cadres.year, "plan": plan, "geo": geo})
 
     # Static files, search engines, custom domain.
     for f in (HERE / "web").rglob("*"):
@@ -777,6 +1075,7 @@ def main():
                    help="write a plain HTML page (for Google and link previews) for athletes with a result in the last N seasons")
     p.add_argument("--salt", default=".site_salt")
     p.add_argument("--cadres", default=str(HERE / "cadres.json"), help="official cadre lists and limits")
+    p.add_argument("--geo", default=str(HERE / "geo.json"), help="regions, canton names and club corrections")
     p.add_argument("--planner", default=str(HERE / "planner.json"), help="season planner: championships, standards, departure cities")
     sys.exit(build(p.parse_args()))
 
