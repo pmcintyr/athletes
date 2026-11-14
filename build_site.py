@@ -504,6 +504,12 @@ class Gazetteer:
                 hit = self.swiss_place(text, canton)
                 if hit:
                     return [hit[0], hit[1], ioc, hit[2]]
+            # "Berlin", "Sindelfingen": a venue abroad written without its country, if it is a town of 15,000+ in Europe
+            hits = [(h[0][1], h, k) for k, cc in IOC_ISO.items() if cc in EUROPE and cc != "CH"
+                    for h in [(self.idx or {}).get((cc, geo_norm(base)))] if h and h[0][1] >= 15000]
+            if hits:
+                _, h, code = max(hits, key=lambda x: x[0])
+                return [h[1], h[2], code, ""]
             return None
         cc = IOC_ISO.get(ioc)
         if self.idx is None:

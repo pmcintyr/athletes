@@ -205,6 +205,123 @@
   "LA Nidwalden": [
    "NW",
    "Stans"
+  ],
+  "LAR Bischofszell": [
+   "TG",
+   "Bischofszell",
+   47.494,
+   9.238
+  ],
+  "CA Broyard": [
+   "VD",
+   "Payerne"
+  ],
+  "FG Malcantone": "TI",
+  "Atletica Mendrisiotto": [
+   "TI",
+   "Mendrisio"
+  ],
+  "USC Capriaschese": "TI",
+  "AS Monteceneri": "TI",
+  "Vis Nova Agarone": "TI",
+  "GAD Dongio": "TI",
+  "Atletica CERESIO": "TI",
+  "LV FrenkeFortuna": [
+   "BL",
+   "Liestal"
+  ],
+  "TSV Galgenen": [
+   "SZ",
+   "Galgenen",
+   47.183,
+   8.87
+  ],
+  "TSV Rothenburg athletics": [
+   "LU",
+   "Rothenburg",
+   47.096,
+   8.272
+  ],
+  "TV Mels": [
+   "SG",
+   "Mels",
+   47.045,
+   9.42
+  ],
+  "Laufental Thierstein Athletics": [
+   "BL",
+   "Laufen"
+  ],
+  "LV Albis": "ZH",
+  "TV Brunnen": [
+   "SZ",
+   "Brunnen",
+   46.994,
+   8.605
+  ],
+  "CS Le Mouret": [
+   "FR",
+   "Le Mouret",
+   46.752,
+   7.178
+  ],
+  "LA Rüegsauschachen": [
+   "BE",
+   "Rüegsauschachen",
+   47.02,
+   7.66
+  ],
+  "TV Santenberg": "LU",
+  "TV Maur": [
+   "ZH",
+   "Maur",
+   47.34,
+   8.668
+  ],
+  "CA Gibloux Farvagny": [
+   "FR",
+   "Farvagny",
+   46.727,
+   7.066
+  ],
+  "FSG Geneveys et Coffrane": [
+   "NE",
+   "Les Geneveys-sur-Coffrane",
+   47.016,
+   6.853
+  ],
+  "C.H. Châtelaine": [
+   "GE",
+   "Genève"
+  ],
+  "TV Reussbühl LA": [
+   "LU",
+   "Luzern"
+  ],
+  "TSV Hinterforst": [
+   "SG",
+   "Altstätten"
+  ],
+  "STV Altbüron": "LU",
+  "LC Emmenstrand": [
+   "LU",
+   "Emmen"
+  ],
+  "Cottens Athlètes": "FR",
+  "Athletic Club 3-Chêne": [
+   "GE",
+   "Chêne-Bourg"
+  ],
+  "TSV Mümliswil-Ramiswil": "SO",
+  "LC Rafzerfeld": [
+   "ZH",
+   "Rafz"
+  ],
+  "LAT Sense (Lauf und Athletikteam)": "FR",
+  "FSG Saint-Cierges": "VD",
+  "CA des Franches-Montagnes": [
+   "JU",
+   "Saignelégier"
   ]
  }
 }
