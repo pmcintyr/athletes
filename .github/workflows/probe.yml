@@ -1,0 +1,25 @@
+# Development aid: runs probe/probe.py and prints what public pages look like, to write and check the scrapers.
+# No secrets, no database, nothing is stored. Runs only when probe/ changes or when started by hand.
+name: Probe public pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["probe/**", ".github/workflows/probe.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python probe/probe.py
