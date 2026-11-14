@@ -67,30 +67,35 @@ with httpx.Client(headers=UA, timeout=40, follow_redirects=True) as c:
         ev = data["props"]["pageProps"]["initialEvents"]
         for k in ("regions", "disciplines", "rankingCategories", "permitLevels", "competitionGroups"):
             print(k, json.dumps(ev["options"][k], ensure_ascii=False)[:3000])
-    # do the filters and paging work from the address alone?
-    for params in ({"startDate": "2026-05-01", "endDate": "2026-08-31", "regionType": "area", "regionId": "10229630", "limit": "100", "offset": "100"},
-                   {"startDate": "2026-05-01", "endDate": "2026-08-31", "regionType": "area", "regionId": "10229630", "competitionGroupId": "8", "disciplineId": "5"},
-                   {"startDate": "2027-01-01", "endDate": "2027-12-31", "competitionGroupId": "8"}):
+    def events(params):
         html = page(c, CAL, params)
         m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html or "", re.S)
-        if m:
-            ev = json.loads(m.group(1))["props"]["pageProps"]["initialEvents"]
-            print("hits", ev["hits"], "returned", len(ev["results"]), "parameters", json.dumps({k: v for k, v in ev["parameters"].items() if v not in (None, False)}))
-            for e in ev["results"][:6]:
-                print("  ", e["id"], e["startDate"], e["rankingCategory"], "|", e["competitionGroup"], "|", e["name"], "|", e["venue"], "| results", e["hasResults"])
-    # one results page: Goldenes Oval Dresden (Silver) is in the first list; take the first Continental Tour meeting found
-    html = page(c, CAL, {"startDate": "2026-05-30", "endDate": "2026-05-31"})
-    m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html or "", re.S)
-    pick = None
-    if m:
-        for e in json.loads(m.group(1))["props"]["pageProps"]["initialEvents"]["results"]:
-            if "Continental Tour" in (e["competitionGroup"] or "") and e["hasResults"]:
-                pick = e
-                break
+        ev = json.loads(m.group(1))["props"]["pageProps"].get("initialEvents") if m else None
+        if not ev:
+            print("no events in the page")
+            return []
+        print("hits", ev["hits"], "returned", len(ev["results"]), "parameters", json.dumps({k: v for k, v in ev["parameters"].items() if v not in (None, False)}))
+        for e in ev["results"][:5]:
+            print("  ", e["id"], e["startDate"], e["rankingCategory"], "|", e["competitionGroup"], "|", e["competitionSubgroup"], "|", e["name"], "|", e["venue"], "| results", e["hasResults"])
+        return ev["results"]
+
+    EU = {"regionType": "area", "regionId": "3", "competitionGroupId": "3773"}
+    events({"startDate": "2026-05-01", "endDate": "2026-08-31", **EU})
+    events({"startDate": "2026-05-01", "endDate": "2026-08-31", **EU, "offset": "100"})
+    events({"startDate": "2027-01-01", "endDate": "2027-12-31", **EU})
+    res = events({"startDate": "2026-05-30", "endDate": "2026-05-31", **EU})
+    pick = next((e for e in res if e["hasResults"]), None)
     if pick:
         print("results page for", pick["name"], pick["id"])
-        html = page(c, f"{CAL}/results/{pick['id']}")
-        if html:
-            soup = tables(html)
-            d = next_data(html)
-            print("headings:", [" ".join(h.get_text(" ").split())[:60] for h in soup.find_all(["h1", "h2", "h3"])][:30])
+        for url in (f"{CAL}/results/{pick['id']}",):
+            html = page(c, url)
+            if html:
+                soup = tables(html)
+                d = next_data(html)
+                print("headings:", [" ".join(h.get_text(" ").split())[:60] for h in soup.find_all(["h1", "h2", "h3"])][:30])
+                if d:
+                    pp = d["props"]["pageProps"]
+                    for k, v in pp.items():
+                        if isinstance(v, (dict, list)) and v:
+                            print("--", k)
+                            shape(v, 1, 9)
