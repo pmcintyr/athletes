@@ -954,9 +954,11 @@ def meetings(out, disc, data, info, gaz):
         si = len(series)
         events = set()
         for mid, m in past:
-            year, longest = int(m["start"][:4]), {}
+            year, longest, field = int(m["start"][:4]), {}, {}
             for key, rows in (m.get("events") or {}).items():
                 sex, name = key.split("|", 1)
+                # "Pole Vault (2)": a second competition of the event at the same meeting; "400 Metres Short Track": indoors
+                name = re.sub(r" Short Track$", "", re.sub(r" \(\d+\)$", "", name))
                 final = [r for r in rows if r[2] == "Final"] or rows
                 vals = [v for v in (wa_mark(r[0]) for r in final) if v is not None]
                 if not vals:
@@ -969,6 +971,12 @@ def meetings(out, disc, data, info, gaz):
                 if d is None:
                     unmapped[tour][name] += 1
                     continue
+                if tour == "road":  # a second list of the same race is a subset (national championship): keep the fuller one
+                    if len(vals) > len(field.get((sex, d), [])):
+                        field[(sex, d)] = vals
+                else:               # A and B competitions of a meeting make one field
+                    field.setdefault((sex, d), []).extend(vals)
+            for (sex, d), vals in field.items():
                 lower = disc[d][3] == 1
                 marks[(tour, f"{sex}{d}")].setdefault(si, []).append([year, [round(v, 2) for v in sorted(vals, reverse=not lower)]])
                 events.add(f"{sex}{d}")
