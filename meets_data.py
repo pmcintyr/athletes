@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-World Athletics Continental Tour meetings in Europe (Gold, Silver, Bronze, Challenger): the calendar, and for past
-editions the marks of each event, so the site can show the level needed at each meeting.
+International competitions in Europe from the World Athletics calendar: the Continental Tour (outdoor meetings), the
+Indoor Tour, the Label Road Races and the Cross Country Tour. For each: the calendar, and for past editions the marks
+of each event, so the site can show the level needed.
 
-  python meets_data.py                 refresh the calendar, then read up to 60 results pages not yet stored
+  python meets_data.py                 refresh the calendars, then read up to 120 results pages not yet stored
   python meets_data.py --budget 200    read more results pages in this run
   python meets_data.py --years 2       how many past seasons to keep results for (default 3)
 
 Source: the public calendar and results pages of worldathletics.org (the data each page carries for its own table).
 One page every 2 seconds; a results page is read once and kept, so after the first weeks a run is a dozen pages.
-Writes meets.json (no athlete names: meeting, date, place, level, and per event the list of marks).
+Writes meets.json (no athlete names: competition, date, place, level, and per event the marks, the best 80 at most).
 """
 import argparse
 import json
@@ -23,7 +24,9 @@ import httpx
 
 CAL = "https://worldathletics.org/competition/calendar-results"
 OUT = Path(__file__).resolve().parent / "meets.json"
-EUROPE, CONTINENTAL_TOUR = "3", "3773"  # ids of the calendar's own filters (area Europe, group Continental Tour)
+EUROPE = "3"  # ids of the calendar's own filters: area Europe, and the competition groups below
+TOURS = {"ct": "3773", "indoor": "3677", "road": "3775", "xc": "3664"}  # Continental Tour, Indoor Tour, Label Road Races, Cross Country Tour
+KEEP = 80  # marks kept per event: road and cross country results can run to hundreds of finishers
 UA = {"User-Agent": "athletes.mcintyre.ch meeting levels (non-commercial, a few pages a night)"}
 
 
@@ -47,11 +50,11 @@ def page_data(client, url, params=None):
     return None
 
 
-def calendar(client, start, end, delay):
-    """Continental Tour meetings in Europe between two dates -> {id: meeting}."""
+def calendar(client, tour, start, end, delay):
+    """Competitions of one tour in Europe between two dates -> {id: competition}."""
     out, offset = {}, 0
     while True:
-        params = {"startDate": start, "endDate": end, "regionType": "area", "regionId": EUROPE, "competitionGroupId": CONTINENTAL_TOUR}
+        params = {"startDate": start, "endDate": end, "regionType": "area", "regionId": EUROPE, "competitionGroupId": TOURS[tour]}
         if offset:
             params["offset"] = str(offset)
         pp = page_data(client, CAL, params)
@@ -61,7 +64,7 @@ def calendar(client, start, end, delay):
             return out if offset else None
         for e in ev["results"]:
             m = re.match(r"^(?:(.*),\s*)?([^,]+?)\s*\(([A-Z]{3})\)\s*$", e.get("venue") or "")
-            out[str(e["id"])] = {"name": e["name"], "venue": e.get("venue") or "", "stadium": (m.group(1) or "") if m else "",
+            out[str(e["id"])] = {"tour": tour, "name": e["name"], "venue": e.get("venue") or "", "stadium": (m.group(1) or "") if m else "",
                                  "city": m.group(2) if m else "", "country": m.group(3) if m else "",
                                  "level": e.get("competitionSubgroup") or "", "cat": e.get("rankingCategory") or "",
                                  "start": e["startDate"], "end": e.get("endDate") or e["startDate"],
@@ -102,6 +105,7 @@ def results(client, mid, delay, sample):
             days = sorted({int(d.get("day") or 1) for d in opts} | {1})
         if day and (box.get("parameters") or {}).get("day") not in (days[day], str(days[day])):
             break  # the address did not select another day: stop instead of storing day 1 twice
+        on_page = {}
         for title in box.get("eventTitles") or []:
             for ev in title.get("events") or []:
                 if ev.get("isRelay"):
@@ -117,43 +121,54 @@ def results(client, mid, delay, sample):
                         if mark and re.match(r"^\d", mark):
                             rows.append([mark, str(r.get("place") or "").strip().rstrip("."), race.get("race") or ""])
                 if rows and ev.get("gender") in ("M", "W"):
-                    events.setdefault(f"{ev['gender']}|{name}", []).extend(rows)
+                    # two races of the same name on one page (long and short race of a cross country) stay apart;
+                    # the same event on another day (heats, then final) is added to the first
+                    on_page[name, ev["gender"]] = on_page.get((name, ev["gender"]), 0) + 1
+                    n = on_page[name, ev["gender"]]
+                    events.setdefault(f"{ev['gender']}|{name}" + (f" ({n})" if n > 1 else ""), []).extend(rows[:KEEP])
         day += 1
     return events
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    ap.add_argument("--budget", type=int, default=60, help="results pages to read in this run")
+    ap.add_argument("--budget", type=int, default=120, help="results pages to read in this run")
     ap.add_argument("--years", type=int, default=3, help="past seasons to keep results for")
     ap.add_argument("--delay", type=float, default=2.0)
     a = ap.parse_args()
     today = date.today()
     store = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}
     meets = store.get("meets", {})
+    for m in meets.values():
+        m.setdefault("tour", "ct")  # stored before the other tours were added
+    done_cal = store.setdefault("calendar_done", {})
+    for k in [k for k in done_cal if ":" not in k]:
+        done_cal[f"ct:{k}"] = done_cal.pop(k)
     before = json.dumps(meets, sort_keys=True)
     with httpx.Client(headers=UA, timeout=40, follow_redirects=True) as client:
-        for year in range(today.year - a.years + 1, today.year + 2):
-            if year < today.year and store.get("calendar_done", {}).get(str(year)):
-                continue  # a past season's calendar no longer changes
-            got = calendar(client, f"{year}-01-01", f"{year}-12-31", a.delay)
-            if got is None:
-                log(f"calendar {year}: could not be read")
-                continue
-            log(f"calendar {year}: {len(got)} meetings")
-            for mid, m in got.items():
-                m["events"] = meets.get(mid, {}).get("events")
-                m["read"] = meets.get(mid, {}).get("read")
-                meets[mid] = m
-            if year < today.year and got:
-                store.setdefault("calendar_done", {})[str(year)] = today.isoformat()
+        for tour in TOURS:
+            for year in range(today.year - a.years + 1, today.year + 2):
+                if year < today.year and done_cal.get(f"{tour}:{year}"):
+                    continue  # a past season's calendar no longer changes
+                got = calendar(client, tour, f"{year}-01-01", f"{year}-12-31", a.delay)
+                if got is None:
+                    log(f"calendar {tour} {year}: nothing, or could not be read")
+                    continue
+                log(f"calendar {tour} {year}: {len(got)} competitions")
+                for mid, m in got.items():
+                    m["events"] = meets.get(mid, {}).get("events")
+                    m["read"] = meets.get(mid, {}).get("read")
+                    meets[mid] = m
+                if year < today.year and got:
+                    done_cal[f"{tour}:{year}"] = today.isoformat()
         # results: finished meetings not read yet, most recent first; a meeting read within 10 days of its end is read
         # once more later, in case results were completed
         todo = [mid for mid, m in meets.items() if m["has_results"] and m["end"] < today.isoformat()
                 and (m.get("events") is None or (m.get("read") and m["read"] < (date.fromisoformat(m["end"]) + timedelta(days=10)).isoformat()
                                                  and today > date.fromisoformat(m["end"]) + timedelta(days=10)))]
         todo.sort(key=lambda mid: meets[mid]["end"], reverse=True)
-        log(f"{len(todo)} results pages to read, {min(len(todo), a.budget)} in this run")
+        left = {t: sum(1 for mid in todo if meets[mid]["tour"] == t) for t in TOURS}
+        log(f"{len(todo)} results pages to read ({', '.join(f'{t} {n}' for t, n in left.items())}), {min(len(todo), a.budget)} in this run")
         sample, done = [False], 0
         for mid in todo[:a.budget]:
             ev = results(client, mid, a.delay, sample)
@@ -170,12 +185,13 @@ def main():
         log("no change")
         return
     store.update({"source": CAL, "updated": today.isoformat(), "meets": meets,
-                  "_about": "World Athletics Continental Tour meetings in Europe, from the public calendar and results pages of "
-                            "worldathletics.org. Per meeting: level, dates, place, and per event [mark, place, race] of every result. "
+                  "_about": "Competitions in Europe of the World Athletics Continental Tour (ct), Indoor Tour (indoor), Label Road Races "
+                            "(road) and Cross Country Tour (xc), from the public calendar and results pages of worldathletics.org. Per "
+                            "competition: tour, level, dates, place, and per event [mark, place, race] of the results (best 80). "
                             "No names. Written by meets_data.py, do not edit by hand."})
     OUT.write_text(json.dumps(store, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     with_results = sum(1 for m in meets.values() if m.get("events"))
-    log(f"wrote {OUT.name}: {len(meets)} meetings, {with_results} with results")
+    log(f"wrote {OUT.name}: {len(meets)} competitions, {with_results} with results")
 
 
 if __name__ == "__main__":

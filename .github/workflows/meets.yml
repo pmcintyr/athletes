@@ -1,5 +1,5 @@
-# Reads the World Athletics Continental Tour calendar for Europe and the results of past editions, a few pages at a
-# time, and commits meets.json when it changed. The site shows the level needed at each meeting from it.
+# Reads the World Athletics calendar for Europe (Continental Tour, Indoor Tour, Label Road Races, Cross Country Tour)
+# and the results of past editions, a few pages at a time, and commits meets.json when it changed.
 name: International meetings
 
 on:
@@ -9,7 +9,7 @@ on:
     inputs:
       budget:
         description: "Results pages to read in this run"
-        default: "60"
+        default: "120"
   push:
     branches: [main]
     paths: ["meets_data.py", ".github/workflows/meets.yml"]
@@ -32,7 +32,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python meets_data.py --budget "${{ inputs.budget || '60' }}"
+      - run: python meets_data.py --budget "${{ inputs.budget || '120' }}"
       - name: Commit the data if it changed
         run: |
           git config user.name "github-actions[bot]"
