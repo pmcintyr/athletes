@@ -896,9 +896,27 @@ def wa_mark(text):
     return v
 
 
+ROAD_EVENTS = {("5", "kilometres"): "5 km Strasse", ("10", "kilometres"): "10 km Strasse", ("15", "kilometres"): "15 km Strasse",
+               ("20", "kilometres"): "20 km Strasse", ("10", "miles"): "10 Meilen Strasse"}
+WA_INDOOR = {"60 Metres Hurdles": {"M": "60 mH 106.7", "W": "60 mH 83.8"}}
+
+
+def wa_event(tour, sex, name, by_label):
+    """Discipline index of a World Athletics event name ('1500 Metres', '10 Kilometres Road'), or None."""
+    if tour == "road":
+        n = name.lower()
+        m = re.match(r"^(\d+) (kilometres|miles)", n)
+        label = "Halbmarathon" if "half marathon" in n else "Marathon" if n.startswith("marathon") else ROAD_EVENTS.get(m.groups()) if m else None
+        return by_label.get((0, label)) if label else None
+    label = (WA_INDOOR.get(name) if tour == "indoor" else None) or WA_EVENTS.get(name)
+    label = label.get(sex) if isinstance(label, dict) else label
+    return by_label.get((1 if tour == "indoor" else 0, label)) if label else None
+
+
 def meetings(out, disc, data, info, gaz):
-    """meets.json (series of meetings: level, place, editions, next date) and meets/<sex><d>.json (marks per edition
-    of one event) from the data meets_data.py collected. An edition's field = its final, else all its races."""
+    """meets.json (series of competitions per tour: level, place, editions, next date) and meets/<tour>-<sex><d>.json
+    (marks per edition of one event) from the data meets_data.py collected. An edition's field = its final, else all
+    its races. Cross country has no event: the longest race of each sex, times given for what they are."""
     shutil.rmtree(out / "meets", ignore_errors=True)
     (out / "meets").mkdir(parents=True, exist_ok=True)
     by_label = {(d[0], d[1]): i for i, d in enumerate(disc)}
@@ -906,8 +924,8 @@ def meetings(out, disc, data, info, gaz):
     groups = defaultdict(list)
     for mid, m in data.get("meets", {}).items():
         if m.get("city"):
-            groups[(geo_norm(m["city"]), series_key(m["name"]))].append((mid, m))
-    # a meeting that changed its name: one-edition groups of the same town join a group held at the same time of year
+            groups[(m.get("tour", "ct"), geo_norm(m["city"]), series_key(m["name"]))].append((mid, m))
+    # a competition that changed its name: one-edition groups of the same town join a group held at the same time of year
     keys = sorted(groups, key=lambda k: -len(groups[k]))
     for k in keys:
         if k not in groups or len(groups[k]) != 1:
@@ -915,7 +933,7 @@ def meetings(out, disc, data, info, gaz):
         mid, m = groups[k][0]
         doy = Date.fromisoformat(m["start"]).timetuple().tm_yday
         for other in keys:
-            if other == k or other not in groups or other[0] != k[0]:
+            if other == k or other not in groups or other[:2] != k[:2]:
                 continue
             years = {x[1]["start"][:4] for x in groups[other]}
             near = any(abs(Date.fromisoformat(x[1]["start"]).timetuple().tm_yday - doy) <= 21 for x in groups[other])
@@ -923,46 +941,58 @@ def meetings(out, disc, data, info, gaz):
                 groups[other].append((mid, m))
                 del groups[k]
                 break
-    series, marks, n_read, n_past = [], defaultdict(dict), 0, 0
+    series, marks, read, unmapped = [], defaultdict(dict), defaultdict(lambda: [0, 0]), defaultdict(lambda: defaultdict(int))
     info = {geo_norm(k): v for k, v in (info or {}).items() if not k.startswith("_")}
-    for (city, _), eds in sorted(groups.items(), key=lambda x: x[0]):
+    for (tour, city, _), eds in sorted(groups.items(), key=lambda x: x[0]):
         eds.sort(key=lambda x: x[1]["start"])
         last = eds[-1][1]
         past = [x for x in eds if x[1]["end"] < today]
         upcoming = next((x[1] for x in eds if x[1]["start"] >= today), None)
-        n_past += len(past)
-        n_read += sum(1 for x in past if x[1].get("events"))
+        read[tour][1] += len(past)
+        read[tour][0] += sum(1 for x in past if x[1].get("events"))
         place = gaz.find(f"{last['city']} ({last['country']})") if last["country"] != "SUI" else gaz.find(last["city"])
         si = len(series)
         events = set()
         for mid, m in past:
+            year, longest = int(m["start"][:4]), {}
             for key, rows in (m.get("events") or {}).items():
                 sex, name = key.split("|", 1)
-                label = WA_EVENTS.get(name)
-                label = label.get(sex) if isinstance(label, dict) else label
-                d = by_label.get((0, label)) if label else None
+                final = [r for r in rows if r[2] == "Final"] or rows
+                vals = [v for v in (wa_mark(r[0]) for r in final) if v is not None]
+                if not vals:
+                    continue
+                if tour == "xc":  # the long race: the one whose winner took longest
+                    if sex not in longest or min(vals) > min(longest[sex]):
+                        longest[sex] = vals
+                    continue
+                d = wa_event(tour, sex, name, by_label)
                 if d is None:
+                    unmapped[tour][name] += 1
                     continue
                 lower = disc[d][3] == 1
-                final = [r for r in rows if r[2] == "Final"] or rows
-                vals = sorted((v for v in (wa_mark(r[0]) for r in final) if v is not None), reverse=not lower)
-                if vals:
-                    marks[(sex, d)].setdefault(si, []).append([int(m["start"][:4]), [round(v, 2) for v in vals]])
-                    events.add(f"{sex}{d}")
+                marks[(tour, f"{sex}{d}")].setdefault(si, []).append([year, [round(v, 2) for v in sorted(vals, reverse=not lower)]])
+                events.add(f"{sex}{d}")
+            for sex, vals in longest.items():
+                marks[(tour, sex)].setdefault(si, []).append([year, [round(v, 2) for v in sorted(vals)]])
+                events.add(sex)
         extra = info.get(geo_norm(last["name"])) or info.get(f"{series_key(last['name'])} {city}".strip())
-        series.append({"n": re.sub(r"^\d+[.°ºª]?\s+|^\d+(st|nd|rd|th)\s+", "", last["name"]), "city": last["city"], "cc": last["country"],
-                       "g": place[:2] if place else None, "lv": last["level"], "cat": last["cat"],
+        series.append({"t": tour, "n": re.sub(r"^\d+[.°ºª]?\s+|^\d+(st|nd|rd|th|ème|e)\s+|^[XLIV]+\s+(?=\S+\s)", "", last["name"]),
+                       "city": last["city"], "cc": last["country"], "g": place[:2] if place else None, "lv": last["level"], "cat": last["cat"],
                        "eds": [[m["start"], m["end"], m["level"], mid, int(bool(m.get("events")))] for mid, m in past[-4:]],
                        "next": [upcoming["start"], upcoming["end"]] if upcoming else None, "ev": sorted(events),
                        "info": extra or None})
-    for (sex, d), rows in marks.items():
-        dump(out / "meets" / f"{sex}{d}.json", rows)
-    dump(out / "meets.json", {"updated": data.get("updated"), "series": series, "events": sorted(f"{sex}{d}" for sex, d in marks),
-                              "read": [n_read, n_past]})
-    print(f"meetings: {len(series)} series from {len(data.get('meets', {}))} meetings, results stored for {n_read} of {n_past} past editions, "
-          f"{len(marks)} events")
+    by_tour = defaultdict(list)
+    for (tour, key), rows in marks.items():
+        dump(out / "meets" / f"{tour}-{key}.json", rows)
+        by_tour[tour].append(key)
+    dump(out / "meets.json", {"updated": data.get("updated"), "series": series, "events": {t: sorted(v) for t, v in by_tour.items()},
+                              "read": {t: v for t, v in read.items()}})
+    print(f"meetings: {len(series)} series from {len(data.get('meets', {}))} competitions; results stored for "
+          + ", ".join(f"{t} {v[0]} of {v[1]}" for t, v in sorted(read.items())) + f"; {len(marks)} event files")
+    for tour, names in sorted(unmapped.items()):
+        top = sorted(names.items(), key=lambda x: -x[1])[:25]
+        print(f"meetings: {tour} events without a discipline here: " + ", ".join(f"{n} ({c})" for n, c in top))
     return {"series": len(series), "updated": data.get("updated")}
-
 
 # ---------- static HTML page per athlete (for search engines and link previews) ----------
 PAGE = """<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

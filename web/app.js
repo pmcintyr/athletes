@@ -122,7 +122,7 @@ function home() {
       <a href="#/l/${y}/in/W">Femmes, en salle</a>
     </div>
     ${META.meets ? `<h2>Meetings internationaux</h2>
-    <p class="lede small">Le niveau qu'il faut dans les meetings du Continental Tour en Europe, et où votre performance vous aurait placé. <a href="#/meetings">Voir les meetings</a></p>` : ""}
+    <p class="lede small">Meetings en plein air et en salle, courses sur route et cross en Europe : le niveau qu'il y faut, et où votre performance vous aurait placé. <a href="#/meetings">Voir les meetings</a></p>` : ""}
     ${META.geo ? `<h2>Clubs, cantons et régions</h2>
     <p class="lede small">Tous les athlètes d'un club avec leur saison et le rang du club dans chaque épreuve ; les cantons et les trois régions côte à côte.</p>
     <div class="quick"><a href="#/clubs">Trouver un club</a><a href="#/cantons">Comparer les cantons</a><a href="#/cantons/regions">Comparer les régions</a></div>` : ""}
@@ -804,6 +804,8 @@ const toISO = t => new Date(t).toISOString().slice(0, 10);
 const addDays = (iso, n) => toISO(pDate(iso).getTime() + n * DAY);
 const fmtDay = iso => `${WD[pDate(iso).getUTCDay()]} ${fmtDate(iso)}`;
 const fmtSpan = (a, b) => (b && b !== a ? `${fmtDate(a).slice(0, a.slice(0, 7) === b.slice(0, 7) ? 3 : 6)} au ${fmtDate(b)}` : fmtDate(a));
+/* 1154.2 -> "19:14", 3725 -> "1:02:05": a time with no event to format it by (cross country) */
+const fmtClock = v => { const t = Math.round(v), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sec = String(t % 60).padStart(2, "0"); return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`; };
 const fmtKm = km => `${(km < 100 ? Math.round(km / 5) * 5 : Math.round(km / 10) * 10).toLocaleString("fr-CH")} km`;
 const fmtHours = h => { const q = Math.round(h * 4) / 4, m = Math.round((q % 1) * 60); return `${Math.floor(q)} h${m ? " " + m : ""}`; };
 
@@ -1172,7 +1174,7 @@ async function planPage(athId) {
           <div class="tbl-wrap"><table><thead><tr><th>Épreuve</th><th class="r">Hommes</th><th class="r">Femmes</th>${c.standards.events.some(e => e.out) ? `<th class="hide-s">Équivalent en plein air</th>` : ""}</tr></thead>
           <tbody>${c.standards.events.map(e => `<tr><td>${esc(e.name)}</td><td class="r num">${esc(e.M)}</td><td class="r num">${esc(e.W)}</td>${c.standards.events.some(x => x.out) ? `<td class="hide-s muted">${e.out ? `${esc(e.out[0])} : ${esc(e.out[1])} / ${esc(e.out[2])}` : ""}</td>` : ""}</tr>`).join("")}</tbody></table></div></details>`).join("")}
       </section>` : ""}
-      <p class="note">Les propositions viennent des résultats des saisons ${META.plan.from} à ${META.plan.to} enregistrés par Swiss Athletics : ce sont les compétitions où des athlètes licenciés en Suisse ont couru, en Suisse comme à l'étranger. Les championnats cantonaux et régionaux sont reconnus à leur nom et proposés pour le canton et la région du lieu de départ ; une compétition réservée à une catégorie d'âge (U16 à U23, masters) n'est proposée qu'aux athlètes de cet âge. « Votre zone » compte les résultats entre votre niveau et votre objectif (à 1,5 % près). Les dates à venir sont reprises du jour habituel de chaque compétition : vérifiez-les auprès de l'organisateur avant de réserver. Distances, durées et prix sont des ordres de grandeur calculés d'après la distance : ni des horaires, ni des tarifs. En Suisse, le trajet est compté en train ; à l'étranger, en train et, dès 350 km, en avion, et le plus rapide des deux sert au filtre « week-end ». Train : environ 20 centimes par kilomètre. Avion : environ 4 h autour du vol, 120 CHF plus 12 centimes par kilomètre.${META.meets ? ` Pour les meetings du Continental Tour à l'étranger, avec leurs dates officielles et le niveau qu'il y faut : <a href="#/meetings${st.ath ? "/" + st.ath : ""}">meetings internationaux</a>.` : ""}</p>`;
+      <p class="note">Les propositions viennent des résultats des saisons ${META.plan.from} à ${META.plan.to} enregistrés par Swiss Athletics : ce sont les compétitions où des athlètes licenciés en Suisse ont couru, en Suisse comme à l'étranger. Les championnats cantonaux et régionaux sont reconnus à leur nom et proposés pour le canton et la région du lieu de départ ; une compétition réservée à une catégorie d'âge (U16 à U23, masters) n'est proposée qu'aux athlètes de cet âge. « Votre zone » compte les résultats entre votre niveau et votre objectif (à 1,5 % près). Les dates à venir sont reprises du jour habituel de chaque compétition : vérifiez-les auprès de l'organisateur avant de réserver. Distances, durées et prix sont des ordres de grandeur calculés d'après la distance : ni des horaires, ni des tarifs. En Suisse, le trajet est compté en train ; à l'étranger, en train et, dès 350 km, en avion, et le plus rapide des deux sert au filtre « week-end ». Train : environ 20 centimes par kilomètre. Avion : environ 4 h autour du vol, 120 CHF plus 12 centimes par kilomètre.${META.meets ? ` Pour les meetings, courses sur route et cross du calendrier international, avec leurs dates officielles et le niveau qu'il y faut : <a href="#/meetings${st.ath ? "/" + st.ath : ""}">meetings internationaux</a>.` : ""}</p>`;
   }
 
   form.addEventListener("input", e => {
@@ -1216,48 +1218,58 @@ async function planPage(athId) {
 /* ---------- international meetings (#/meetings) ----------
    World Athletics Continental Tour meetings in Europe: what it took at the last editions, against the athlete's mark.
    Data: meets.json (series) and meets/<sex><d>.json (marks per edition of one event), from meets_data.py. */
-const LEVELS = ["Gold", "Silver", "Bronze", "Challenger"];
+const TOURS = {
+  ct: { name: "Plein air", full: "Continental Tour", levels: ["Gold", "Silver", "Bronze", "Challenger"] },
+  indoor: { name: "En salle", full: "Indoor Tour", levels: ["Gold", "Silver", "Bronze", "Challenger"] },
+  road: { name: "Route", full: "Label Road Races", levels: ["Platinum", "Gold", "Elite", "Label"] },
+  xc: { name: "Cross", full: "Cross Country Tour", levels: ["Gold", "Silver", "Bronze"] },
+};
 async function meetingsPage(athId) {
   document.title = `Meetings internationaux – ${META.title}`;
   const [MEETS, CFG, townList] = await Promise.all([optJSON("meets.json"), optJSON("planner.json"), optJSON("towns.json")]);
-  if (!MEETS || !MEETS.events.length) return notFound("Les meetings internationaux ne sont pas encore disponibles.");
+  if (!MEETS || !Object.keys(MEETS.events).length) return notFound("Les meetings internationaux ne sont pas encore disponibles.");
   const TOWNS = new Map();
   [...(townList || []), ...((CFG && CFG.homes) || [])].forEach(t => TOWNS.set(norm(t[0]), t));
   const plan = saved("plan.v2") || {};
-  const st = Object.assign({ ath: null, athName: "", sex: plan.sex || "M", ev: null, mark: "", home: plan.home || "Lausanne", level: "", cc: "", sort: "fit", soon: false }, saved("meet.v1") || {});
-  const evs = sex => MEETS.events.filter(e => e[0] === sex).map(e => +e.slice(1)).sort((a, b) => a - b);
-  const pickEvent = label => { const d = evs(st.sex).find(x => D(x)[1] === label); return d === undefined ? null : d; };
+  const st = Object.assign({ ath: null, athName: "", tour: "ct", sex: plan.sex || "M", label: plan.ev || "1500 m", mark: "", home: plan.home || "Lausanne", level: "", cc: "", sort: "fit", soon: false }, saved("meet.v2") || {});
+  if (!MEETS.events[st.tour]) st.tour = Object.keys(TOURS).find(t => MEETS.events[t]);
+  // events of the chosen tour and sex, as discipline indexes; cross country has none
+  const evs = () => (MEETS.events[st.tour] || []).filter(e => e[0] === st.sex && e.length > 1).map(e => +e.slice(1)).sort((a, b) => a - b);
+  const current = () => { const list = evs(); return list.find(d => D(d)[1] === st.label) ?? list[0] ?? null; };
+  let ath = null;
+  const pbFor = d => { const p = ath && d !== null ? ath.pb.find(x => x[0] === d) : null; return p ? p[1] : ""; };
   if (athId && athId !== st.ath) {
-    const a = await loadAthlete(athId);
-    if (a) {
-      st.ath = athId; st.athName = a.n; st.sex = a.s === "W" ? "W" : "M";
-      const pb = a.pb.find(p => !D(p[0])[0] && evs(st.sex).includes(p[0]));
-      st.ev = pb ? pb[0] : null; st.mark = pb ? pb[1] : "";
-      if (a.g && a.g[1] && a.g[2] !== null) { TOWNS.set(norm(a.g[1]), [a.g[1], a.g[2], a.g[3], a.g[0]]); st.home = a.g[1]; }
+    ath = await loadAthlete(athId);
+    if (ath) {
+      st.ath = athId; st.athName = ath.n; st.sex = ath.s === "W" ? "W" : "M";
+      const pb = ath.pb.find(p => evs().includes(p[0]));
+      if (pb) { st.label = D(pb[0])[1]; st.mark = pb[1]; }
+      if (ath.g && ath.g[1] && ath.g[2] !== null) { TOWNS.set(norm(ath.g[1]), [ath.g[1], ath.g[2], ath.g[3], ath.g[0]]); st.home = ath.g[1]; }
     }
-  }
-  if (st.ev === null || !evs(st.sex).includes(st.ev)) st.ev = pickEvent(plan.ev || "1500 m") ?? evs(st.sex)[0];
-  if (!st.mark && plan.level && D(st.ev)[1] === plan.ev) st.mark = plan.level;
+  } else if (st.ath) ath = await loadAthlete(st.ath);
   const countries = [...new Set(MEETS.series.map(s => s.cc))].sort();
   app.innerHTML = `
     <section class="profile-head">
       <h1>Meetings internationaux</h1>
-      <p class="lede">Les meetings du Continental Tour de World Athletics en Europe : le niveau qu'il a fallu aux dernières éditions, et où votre performance vous aurait placé.</p>
+      <p class="lede">Meetings en plein air et en salle, courses sur route et cross du calendrier de World Athletics en Europe : le niveau qu'il a fallu aux dernières éditions, et où votre performance vous aurait placé.</p>
     </section>
     <form id="mf" class="plan-form" onsubmit="return false">
       <div id="mwho"></div>
       <div class="controls">
-        <label>Épreuve <select name="ev"></select></label>
+        <span class="seg" role="group" aria-label="Type de compétition">${Object.entries(TOURS).filter(([t]) => MEETS.events[t] || MEETS.series.some(s => s.t === t)).map(([t, v]) => `<a href="#" data-tour="${t}">${v.name}</a>`).join("")}</span>
         <span class="seg" role="group" aria-label="Sexe"><a href="#" data-sex="M">Hommes</a><a href="#" data-sex="W">Femmes</a></span>
-        <label>Ma performance <input name="mark" type="text" inputmode="decimal" size="8" placeholder="3:45.00" value="${esc(st.mark)}"></label>
+      </div>
+      <div class="controls">
+        <label id="mevl">Épreuve <select name="ev"></select></label>
+        <label id="mmkl">Ma performance <input name="mark" type="text" inputmode="decimal" size="8" placeholder="3:45.00" value="${esc(st.mark)}"></label>
         <label>Départ de <input name="home" type="text" list="mtowns" size="16" autocomplete="off" value="${esc(st.home)}"></label>
         <datalist id="mtowns">${[...TOWNS.values()].map(t => `<option value="${esc(t[0])}">`).join("")}</datalist>
       </div>
       <div class="controls">
-        <label>Niveau <select name="level"><option value="">Tous</option>${LEVELS.map(l => `<option${st.level === l ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label>Niveau <select name="level"></select></label>
         <label>Pays <select name="cc"><option value="">Tous</option>${countries.map(c => `<option${st.cc === c ? " selected" : ""}>${c}</option>`).join("")}</select></label>
-        <label>Trier par <select name="sort">${[["fit", "Le plus adapté à mon niveau"], ["date", "Date"], ["km", "Distance"], ["cat", "Catégorie du meeting"]].map(([v, t]) => `<option value="${v}"${st.sort === v ? " selected" : ""}>${t}</option>`).join("")}</select></label>
-        <label class="check"><input name="soon" type="checkbox"${st.soon ? " checked" : ""}> Date ${new Date().getFullYear() + 1} annoncée</label>
+        <label>Trier par <select name="sort">${[["fit", "Le plus adapté à mon niveau"], ["fast", "Les plus rapides"], ["date", "Date"], ["km", "Distance"], ["cat", "Niveau de la compétition"]].map(([v, t]) => `<option value="${v}"${st.sort === v ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+        <label class="check"><input name="soon" type="checkbox"${st.soon ? " checked" : ""}> Prochaine date annoncée</label>
       </div>
     </form>
     <div id="mout" aria-live="polite"></div>`;
@@ -1266,7 +1278,7 @@ async function meetingsPage(athId) {
     const box = app.querySelector("#mwho");
     if (st.ath && st.athName) {
       box.innerHTML = `<p class="plan-who">Pour <a href="${athleteHref(st.ath, st.athName)}"><strong>${esc(st.athName)}</strong></a> <button type="button" class="link" id="mclear">changer</button></p>`;
-      box.querySelector("#mclear").addEventListener("click", () => { st.ath = null; st.athName = ""; saved("meet.v1", st); who(); });
+      box.querySelector("#mclear").addEventListener("click", () => { st.ath = null; st.athName = ""; ath = null; saved("meet.v2", st); who(); });
     } else {
       box.innerHTML = "";
       box.append(searchBox({ label: "Partir de mon profil (facultatif)", placeholder: "Nom ou prénom", small: true, link: e => `#/meetings/${e[0]}` }));
@@ -1275,64 +1287,78 @@ async function meetingsPage(athId) {
   const TAGS = { podium: ["pb", "podium à votre portée"], ok: ["pb", "réaliste"], stretch: ["w", "ambitieux"], far: ["w", "trop relevé pour l'instant"] };
   let seq = 0;
   async function draw() {
-    const my = ++seq, d = st.ev, home = TOWNS.get(norm(st.home)) || null;
+    const my = ++seq, T = TOURS[st.tour], xc = st.tour === "xc", d = xc ? null : current(), home = TOWNS.get(norm(st.home)) || null;
     form.querySelectorAll("[data-sex]").forEach(x => x.setAttribute("aria-current", String(x.dataset.sex === st.sex)));
-    form.ev.innerHTML = evs(st.sex).map(x => `<option value="${x}"${x === d ? " selected" : ""}>${esc(dName(x))}</option>`).join("");
-    saved("meet.v1", st);
-    const marks = await optJSON(`meets/${st.sex}${d}.json`) || {};
+    form.querySelectorAll("[data-tour]").forEach(x => x.setAttribute("aria-current", String(x.dataset.tour === st.tour)));
+    form.ev.innerHTML = evs().map(x => `<option value="${x}"${x === d ? " selected" : ""}>${esc(dName(x))}</option>`).join("");
+    form.level.innerHTML = `<option value="">Tous</option>${T.levels.map(l => `<option${st.level === l ? " selected" : ""}>${l}</option>`).join("")}`;
+    app.querySelector("#mevl").hidden = app.querySelector("#mmkl").hidden = xc;
+    if (d !== null) st.label = D(d)[1];
+    saved("meet.v2", st);
+    const marks = (xc || d !== null ? await optJSON(`meets/${st.tour}-${st.sex}${xc ? "" : d}.json`) : null) || {};
     if (my !== seq) return;
-    const mine = markValue(st.mark), year = new Date().getFullYear();
+    const fmt = v => (xc ? fmtClock(v) : fmtVal(v, d)), better = (a, b) => (xc ? a < b : sortv(d, a) < sortv(d, b));
+    const mine = xc ? null : markValue(st.mark), year = new Date().getFullYear(), today = toISO(Date.now());
     const rows = [];
     MEETS.series.forEach((s, i) => {
+      if (s.t !== st.tour || (st.level && s.lv !== st.level) || (st.cc && s.cc !== st.cc) || (st.soon && !s.next)) return;
       const eds = (marks[i] || []).slice().sort((a, b) => b[0] - a[0]);
-      if (!eds.length || (st.level && s.lv !== st.level) || (st.cc && s.cc !== st.cc) || (st.soon && !s.next)) return;
-      const last = eds[0][1], n = last.length;
+      if (!eds.length && !(xc && (s.next || s.eds.length))) return;
+      const last = eds.length ? eds[0][1] : [], n = last.length;
       let tag = null, pos = null;
-      if (mine !== null) {
-        pos = 1 + last.filter(v => sortv(d, v) < sortv(d, mine)).length;
+      if (mine !== null && n) {
+        pos = 1 + last.filter(v => better(v, mine)).length;
         // the back of a field is often a pacemaker or someone who eased off: judge against the mark four fifths down
         const floor = last[Math.max(0, Math.ceil(n * 0.8) - 1)], gap = (sortv(d, mine) - sortv(d, floor)) / Math.abs(floor);
         tag = pos <= Math.min(3, n) ? "podium" : gap <= 0 ? "ok" : gap <= 0.015 ? "stretch" : "far";
       }
       const t = home && s.g ? travel(home, [s.city, s.g[0], s.g[1], s.cc]) : null;
-      rows.push({ s, eds, pos, n, tag, t, lv: LEVELS.indexOf(s.lv) });
+      const depth = n ? last[Math.min(8, n) - 1] : null;  // the 8th mark, or the last one of a smaller field
+      rows.push({ s, eds, pos, n, tag, t, lv: T.levels.indexOf(s.lv), depth });
     });
-    const order = { ok: 0, podium: 1, stretch: 2, far: 3 };
-    rows.sort((a, b) => st.sort === "date" ? ((a.s.next || ["9"])[0] < (b.s.next || ["9"])[0] ? -1 : 1)
-      : st.sort === "km" ? (a.t ? a.t.km : 1e9) - (b.t ? b.t.km : 1e9)
-      : st.sort === "cat" ? a.lv - b.lv || (a.t ? a.t.km : 1e9) - (b.t ? b.t.km : 1e9)
-      : (mine === null ? a.lv - b.lv : order[a.tag] - order[b.tag] || a.lv - b.lv) || (a.t ? a.t.km : 1e9) - (b.t ? b.t.km : 1e9));
-    const pick = (vals, k) => (vals.length >= k ? fmtVal(vals[k - 1], d) : "");
+    const order = { ok: 0, podium: 1, stretch: 2, far: 3 }, km = r => (r.t ? r.t.km : 1e9), when = r => (r.s.next || ["9"])[0];
+    const fast = (a, b) => (a.depth === null) - (b.depth === null) || (a.depth === null ? 0 : xc ? a.depth - b.depth : sortv(d, a.depth) - sortv(d, b.depth));
+    const sort = st.sort === "fit" && (mine === null || xc) ? (xc ? "date" : "fast") : st.sort;
+    rows.sort((a, b) => (sort === "date" ? (when(a) < when(b) ? -1 : when(a) > when(b) ? 1 : 0)
+      : sort === "km" ? km(a) - km(b)
+      : sort === "cat" ? a.lv - b.lv
+      : sort === "fast" ? fast(a, b)
+      : order[a.tag] - order[b.tag] || a.lv - b.lv) || km(a) - km(b));
+    const pick = (vals, k) => (vals.length >= k ? fmt(vals[k - 1]) : "");
+    const read = MEETS.read[st.tour] || [0, 0];
+    const what = xc ? `cross ${st.sex === "W" ? "femmes" : "hommes"}` : d === null ? "" : `${dName(d)} ${st.sex === "W" ? "femmes" : "hommes"}`;
     out.innerHTML = `
-      <p class="note">${rows.length} meeting${rows.length > 1 ? "s" : ""} avec ${esc(dName(d))} ${st.sex === "W" ? "femmes" : "hommes"} parmi les éditions déjà relevées (${MEETS.read[0]} sur ${MEETS.read[1]} ; le reste arrive au fil des nuits).</p>
+      <p class="note">${rows.length} compétition${rows.length > 1 ? "s" : ""}${what ? ` avec ${esc(what)}` : ""}, ${T.full} en Europe. Résultats relevés pour ${read[0]} éditions passées sur ${read[1]}${read[0] < read[1] ? " ; le reste arrive au fil des nuits" : ""}.</p>
       ${rows.length ? `<ul class="races">${rows.map(({ s, eds, pos, n, tag, t }) => `<li class="race">
         <div class="race-top"><span class="race-name">${esc(s.n)}<span class="tag lv-${esc(s.lv.toLowerCase())}">${esc(s.lv)}${s.cat ? ` · catégorie ${esc(s.cat)}` : ""}</span>${tag ? `<span class="tag ${TAGS[tag][0]}">${TAGS[tag][1]}</span>` : ""}</span>
-          <span class="race-date num">${s.next ? fmtDay(s.next[0]) : `<span class="muted">date ${year + (eds[0][0] >= year ? 1 : 0)} non annoncée</span>`}</span></div>
+          <span class="race-date num">${s.next ? fmtDay(s.next[0]) : `<span class="muted">prochaine date non annoncée</span>`}</span></div>
         <p class="race-meta">${esc(s.city)} (${esc(s.cc)})${t ? (t.chf ? ` · <strong class="num">${fmtKm(t.km)}</strong> de ${esc(home[0])} · ${t.modes.map(m => `${m.name.toLowerCase()} environ ${fmtHours(m.h)}, ${m.chf} CHF aller-retour`).join(" ; ")}` : " · sur place") : ""}</p>
-        <div class="tbl-wrap need"><table><thead><tr><th>Édition</th><th class="r">Vainqueur</th><th class="r">3e</th><th class="r">8e</th><th class="r">Dernier</th><th class="r">Classés</th></tr></thead>
-          <tbody>${eds.slice(0, 3).map(([y, v]) => `<tr><td class="num">${y}</td><td class="mk r">${pick(v, 1)}</td><td class="r num">${pick(v, 3)}</td><td class="r num">${pick(v, 8)}</td><td class="r num">${fmtVal(v[v.length - 1], d)}</td><td class="r num">${v.length}</td></tr>`).join("")}</tbody></table></div>
-        ${pos !== null ? `<p class="race-meta">Avec ${esc(st.mark)}, vous auriez été <strong>${ordinal(pos)} sur ${n + (pos > n ? 1 : 0)}</strong> en ${eds[0][0]}${pos > n ? ` : à ${fmtGap(d, gapTo(d, markValue(st.mark), eds[0][1][n - 1]))} du dernier classé` : ""}.</p>` : ""}
-        ${s.info ? `<p class="race-meta"><strong>Inscription :</strong> ${esc(s.info.entry || "")}${s.info.deadline ? ` · délai : ${esc(s.info.deadline)}` : ""}${s.info.url ? ` · <a href="${esc(s.info.url)}" rel="noopener" target="_blank">site du meeting</a>` : ""}</p>` : ""}
+        ${eds.length ? `<div class="tbl-wrap need"><table><thead><tr><th>Édition</th><th class="r">Vainqueur</th><th class="r">3e</th><th class="r">8e</th>${st.tour === "road" || xc ? `<th class="r">20e</th>` : ""}<th class="r">Dernier relevé</th><th class="r">Classés</th></tr></thead>
+          <tbody>${eds.slice(0, 3).map(([y, v]) => `<tr><td class="num">${y}</td><td class="mk r">${pick(v, 1)}</td><td class="r num">${pick(v, 3)}</td><td class="r num">${pick(v, 8)}</td>${st.tour === "road" || xc ? `<td class="r num">${pick(v, 20)}</td>` : ""}<td class="r num">${fmt(v[v.length - 1])}</td><td class="r num">${v.length}${v.length >= 80 ? "+" : ""}</td></tr>`).join("")}</tbody></table></div>` : `<p class="race-meta">Résultats des dernières éditions pas encore relevés.</p>`}
+        ${pos !== null ? `<p class="race-meta">Avec ${esc(st.mark)}, vous auriez été <strong>${ordinal(pos)}${n >= 80 && pos > n ? " ou plus loin" : ` sur ${n + (pos > n ? 1 : 0)}`}</strong> en ${eds[0][0]}${pos > n && n < 80 ? ` : à ${fmtGap(d, gapTo(d, mine, eds[0][1][n - 1]))} du dernier classé` : ""}.</p>` : ""}
+        ${s.info ? `<p class="race-meta"><strong>Inscription :</strong> ${esc(s.info.entry || "")}${s.info.deadline ? ` · délai : ${esc(s.info.deadline)}` : ""}${s.info.url ? ` · <a href="${esc(s.info.url)}" rel="noopener" target="_blank">site de la compétition</a>` : ""}</p>` : ""}
         <p class="race-act">${(() => { const e = s.eds.slice().reverse().find(x => x[4]); return e ? `<a href="https://worldathletics.org/competition/calendar-results/results/${e[3]}" rel="noopener" target="_blank">Résultats ${e[0].slice(0, 4)} sur World Athletics</a>` : ""; })()}</p>
-      </li>`).join("")}</ul>` : `<p class="empty">Aucun meeting pour ce choix.</p>`}
-      <p class="note">Source : calendrier et résultats publics de <a href="https://worldathletics.org/competition/calendar-results" rel="noopener">World Athletics</a>, état au ${MEETS.updated ? fmtDate(MEETS.updated) : "?"}. Les quatre niveaux du Continental Tour sont Gold, Silver, Bronze et Challenger ; la catégorie (A à F) est celle du classement mondial : à place égale, une catégorie plus haute rapporte plus de points de classement. Les performances sont celles de la finale, ou de toutes les séries quand il n'y a pas de finale ; « dernier » est le dernier classé, pas un minimum d'engagement. Un meeting choisit lui-même ses athlètes : « réaliste » veut dire que votre performance valait au moins celle du concurrent situé aux quatre cinquièmes du classement de la dernière édition (les tout derniers sont souvent des lièvres ou des athlètes qui ont coupé leur effort), « ambitieux » qu'elle en était à 1,5 % ou moins. Dates ${year + 1} d'après le calendrier de World Athletics, encore incomplet. Distances, durées et prix : ordres de grandeur, comme dans le planificateur.</p>`;
+      </li>`).join("")}</ul>` : `<p class="empty">Aucune compétition pour ce choix.</p>`}
+      <p class="note">Source : calendrier et résultats publics de <a href="https://worldathletics.org/competition/calendar-results" rel="noopener">World Athletics</a>, état au ${MEETS.updated ? fmtDate(MEETS.updated) : "?"} : Continental Tour (plein air), Indoor Tour (salle), Label Road Races (route) et Cross Country Tour, compétitions en Europe. La catégorie (A à F, GW, GL) est celle du classement mondial : à place égale, une catégorie plus haute rapporte plus de points de classement. ${xc ? "En cross, les temps dépendent du parcours et de la distance : ils situent la densité d'une course, ils ne se comparent pas d'un cross à l'autre. La course retenue est la plus longue de chaque édition." : st.tour === "road" ? "Sur route, les résultats relevés sont ceux que publie World Athletics, 80 par course au plus : « dernier relevé » n'est pas le dernier arrivant." : "Les performances sont celles de la finale, ou de toutes les séries quand il n'y a pas de finale ; « dernier relevé » est le dernier classé, pas un minimum d'engagement."} ${xc ? "" : "Une compétition choisit elle-même ses athlètes : « réaliste » veut dire que votre performance valait au moins celle du concurrent situé aux quatre cinquièmes du classement de la dernière édition (les tout derniers sont souvent des lièvres ou des athlètes qui ont coupé leur effort), « ambitieux » qu'elle en était à 1,5 % ou moins. « Les plus rapides » classe d'après la 8e performance de la dernière édition. "}Dates à venir d'après le calendrier de World Athletics, encore incomplet pour ${year + 1}. Distances, durées et prix : ordres de grandeur, comme dans le planificateur.</p>`;
   }
   form.addEventListener("input", e => {
     const t = e.target;
     if (t.name === "soon") st.soon = t.checked;
-    else if (t.name === "ev") st.ev = +t.value;
+    else if (t.name === "ev") { st.label = D(+t.value)[1]; st.mark = form.mark.value = pbFor(+t.value); }
     else if (t.name === "home") { if (!TOWNS.has(norm(t.value))) return; st.home = TOWNS.get(norm(t.value))[0]; }
     else if (["mark", "level", "cc", "sort"].includes(t.name)) st[t.name] = t.value.trim();
     else return;
     draw();
   });
   form.addEventListener("click", e => {
-    if (!e.target.dataset.sex) return;
+    const t = e.target;
+    if (!t.dataset.sex && !t.dataset.tour) return;
     e.preventDefault();
-    const label = D(st.ev)[1];
-    if (st.sex !== e.target.dataset.sex) st.mark = form.mark.value = "";
-    st.sex = e.target.dataset.sex;
-    st.ev = pickEvent(label) ?? evs(st.sex)[0];
+    if (t.dataset.sex && st.sex !== t.dataset.sex) { st.sex = t.dataset.sex; st.mark = ""; }
+    if (t.dataset.tour && st.tour !== t.dataset.tour) { st.tour = t.dataset.tour; st.level = ""; st.mark = ""; }
+    const d = st.tour === "xc" ? null : current();
+    if (!st.mark && d !== null && ath && (ath.s === "W" ? "W" : "M") === st.sex) st.mark = pbFor(d);
+    form.mark.value = st.mark;
     draw();
   });
   who(); await draw();
