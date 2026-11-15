@@ -243,6 +243,21 @@ td.bar span { position: relative; }
 .tag[class*="lv-"] { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
 .tag.lv-gold { border-color: var(--amber); } .tag.lv-silver { border-color: var(--muted); }
 
+/* sections, tabs, home cards */
+.subnav { display: flex; flex-wrap: wrap; gap: 4px 22px; border-bottom: 1px solid var(--line); margin: 0 0 6px; }
+.subnav a { padding: 8px 0 9px; text-decoration: none; color: var(--muted); font-weight: 600; font-size: 15px; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.subnav a:hover { color: var(--ink); }
+.subnav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--blue); }
+.tabs { margin-top: 22px; flex-wrap: wrap; max-width: 100%; }
+.tabs a { cursor: pointer; }
+.panel > h2:first-child, .panel > .list-sec:first-child > h2 { margin-top: 22px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 28px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px 18px; }
+.card h2 { margin: 0 0 6px; }
+.card p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
+.quick.actions { margin-top: 14px; }
+.quick.actions a { font-size: 14px; padding: 6px 12px; }
+
 /* footer */
 .foot { border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; padding: 22px 0 36px; }
 .foot p { margin: 0 0 6px; max-width: 80ch; }

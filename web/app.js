@@ -100,6 +100,31 @@ function searchBox({ label, placeholder, small, link, exclude }) {
 }
 
 /* ---------- views ---------- */
+/* ---------- sections of the site and tabs inside a page ----------
+   Four entries in the header; the pages of a section share a row of links under it. */
+const SECTIONS = [
+  { href: "#/", routes: ["", "a", "h2h"] },
+  { href: "#/l", routes: ["l", "cadres"], sub: p => [["#/l", "Listes de la saison", p[0] === "l"], ["#/cadres", "Cadres nationaux", p[0] === "cadres"]] },
+  { href: "#/clubs", routes: ["clubs", "club", "cantons", "canton", "region"], sub: p => [["#/clubs", "Clubs", p[0] === "clubs" || p[0] === "club"],
+    ["#/cantons", "Cantons", (p[0] === "cantons" && p[1] !== "regions") || p[0] === "canton"], ["#/cantons/regions", "Régions", p[1] === "regions" || p[0] === "region"]] },
+  { href: "#/plan", routes: ["plan", "meetings"], sub: p => [[`#/plan${p[1] ? "/" + p[1] : ""}`, "Planifier ma saison", p[0] === "plan"],
+    [`#/meetings${p[1] ? "/" + p[1] : ""}`, "Compétitions internationales", p[0] === "meetings"]] },
+];
+const TAB_MEMO = {};
+/* A row of tabs; items are [id, label], falsy ones are left out. Call it before the panels it controls. */
+function tabBar(key, items) {
+  items = items.filter(Boolean);
+  if (!items.some(i => i[0] === TAB_MEMO[key])) TAB_MEMO[key] = items[0][0];
+  return items.length > 1 ? `<div class="seg tabs" role="tablist" data-tabs="${key}">${items.map(([id, label]) =>
+    `<a href="#" role="tab" data-tabid="${id}" aria-current="${id === TAB_MEMO[key]}">${label}</a>`).join("")}</div>` : "";
+}
+const panel = (key, id, html) => `<section class="panel" data-panel="${key}" data-id="${id}"${TAB_MEMO[key] === id ? "" : " hidden"}>${html}</section>`;
+function showTab(key, id) {
+  TAB_MEMO[key] = id;
+  app.querySelectorAll(`[data-tabs="${key}"] [data-tabid]`).forEach(x => x.setAttribute("aria-current", String(x.dataset.tabid === id)));
+  app.querySelectorAll(`[data-panel="${key}"]`).forEach(x => { x.hidden = x.dataset.id !== id; });
+}
+
 function home() {
   document.title = META.title;
   const y = META.years[0];
@@ -114,20 +139,17 @@ function home() {
         <span><b class="num">${META.years.length}</b>saisons</span>
       </div>
     </section>
-    <h2>Meilleures performances ${y}</h2>
-    <div class="quick">
-      <a href="#/l/${y}/out/M">Hommes, plein air</a>
-      <a href="#/l/${y}/out/W">Femmes, plein air</a>
-      <a href="#/l/${y}/in/M">Hommes, en salle</a>
-      <a href="#/l/${y}/in/W">Femmes, en salle</a>
-    </div>
-    ${META.meets ? `<h2>Meetings internationaux</h2>
-    <p class="lede small">Meetings en plein air et en salle, courses sur route et cross en Europe : le niveau qu'il y faut, et où votre performance vous aurait placé. <a href="#/meetings">Voir les meetings</a></p>` : ""}
-    ${META.geo ? `<h2>Clubs, cantons et régions</h2>
-    <p class="lede small">Tous les athlètes d'un club avec leur saison et le rang du club dans chaque épreuve ; les cantons et les trois régions côte à côte.</p>
-    <div class="quick"><a href="#/clubs">Trouver un club</a><a href="#/cantons">Comparer les cantons</a><a href="#/cantons/regions">Comparer les régions</a></div>` : ""}
-    ${META.plan ? `<h2>Planifier ma saison</h2>
-    <p class="lede small">Partez de vos objectifs : les courses à placer avant et après, là où l'on court à votre niveau, à portée de train. <a href="#/plan">Ouvrir le planificateur</a></p>` : ""}`;
+    <div class="cards">
+      <section class="card"><h2>Classements</h2>
+        <p>Les meilleures performances suisses de la saison et les cadres nationaux.</p>
+        <div class="quick"><a href="#/l/${y}/out/M">Hommes ${y}</a><a href="#/l/${y}/out/W">Femmes ${y}</a><a href="#/l/${y}/in/M">En salle</a><a href="#/cadres">Cadres</a></div></section>
+      ${META.geo ? `<section class="card"><h2>Clubs et cantons</h2>
+        <p>Les athlètes de chaque club avec leur saison, et les cantons et régions côte à côte.</p>
+        <div class="quick"><a href="#/clubs">Trouver un club</a><a href="#/cantons">Cantons</a><a href="#/cantons/regions">Régions</a></div></section>` : ""}
+      ${META.plan || META.meets ? `<section class="card"><h2>Ma saison</h2>
+        <p>Des objectifs à votre portée, les courses à placer autour, et le niveau des compétitions internationales.</p>
+        <div class="quick">${META.plan ? `<a href="#/plan">Planifier ma saison</a>` : ""}${META.meets ? `<a href="#/meetings">Compétitions internationales</a>` : ""}</div></section>` : ""}
+    </div>`;
   const s = searchBox({ label: "Rechercher un athlète", placeholder: "Nom ou prénom", link: e => athleteHref(e[0], e[1]) });
   app.querySelector("#s").replaceWith(s);
   s.querySelector("input").focus();
@@ -204,6 +226,10 @@ async function profile(id) {
   const resDiscs = [...new Set(a.r.map(r => r[0]))].sort((x, y) => x - y);
   const seasons = [...new Set(a.r.map(r => r[1].slice(0, 4)))].sort().reverse();
   const pbKey = new Set(a.pb.map(p => `${p[0]}|${p[3]}|${p[1]}`));
+  const goals = `${(a.lim || []).length ? `<p class="limit">${esc((META.limit_name || "").replace(/^Limites/, "Limite"))} ${META.limit_year} réalisée : ${a.lim.map(([ev, mark, lim, date, indoor]) =>
+    `<strong>${esc(ev)} ${esc(mark)}</strong>${indoor ? " (salle)" : ""} <span class="muted">(limite ${esc(lim)})</span>`).join(", ")}. <a href="#/cadres">Voir les cadres</a></p>` : ""}
+    ${limitsBlock(a, plan, cad)}
+    ${rivalsBlock(id, rk)}`;
 
   app.innerHTML = `
     <section class="profile-head">
@@ -214,34 +240,34 @@ async function profile(id) {
         ${a.c ? `<span>Club ${META.geo ? `<a href="${clubHref(a.c)}"><strong>${esc(a.c)}</strong></a>` : `<strong>${esc(a.c)}</strong>`}</span>` : ""}
         ${canton && geo && geo.cantons[canton] ? `<span>Canton <a href="#/canton/${canton}"><strong>${esc(geo.cantons[canton][0])}</strong></a>${a.g[4] ? "" : UNSURE}</span>` : ""}
         ${a.cs.length > 1 ? `<span>Avant : ${a.cs.slice(0, -1).reverse().map(esc).join(", ")}</span>` : ""}
-        ${a.pg ? `<span><a href="p/${id}.html">Lien à partager</a></span>` : ""}
-        ${META.plan ? `<span><a href="#/plan/${id}">Planifier ma saison</a></span>` : ""}
-        ${META.meets ? `<span><a href="#/meetings/${id}">Meetings internationaux</a></span>` : ""}
       </div>
-      ${(a.lim || []).length ? `<p class="limit">${esc((META.limit_name || "").replace(/^Limites/, "Limite"))} ${META.limit_year} réalisée : ${a.lim.map(([ev, mark, lim, date, indoor]) =>
-        `<strong>${esc(ev)} ${esc(mark)}</strong>${indoor ? " (salle)" : ""} <span class="muted">(limite ${esc(lim)})</span>`).join(", ")}. <a href="#/cadres">Voir les cadres</a></p>` : ""}
+      <div class="quick actions">
+        ${META.plan ? `<a href="#/plan/${id}">Planifier ma saison</a>` : ""}
+        ${META.meets ? `<a href="#/meetings/${id}">Compétitions internationales</a>` : ""}
+        ${a.pg ? `<a href="p/${id}.html">Lien à partager</a>` : ""}
+      </div>
       <div id="cmp" class="compare"></div>
     </section>
-    <h2>Records personnels</h2>
-    ${a.pb.length ? `<div class="cols">
-      ${out.length ? `<div><h3>Plein air</h3>${pbLanes(out, a.s)}</div>` : ""}
-      ${ins.length ? `<div><h3>En salle</h3>${pbLanes(ins, a.s)}</div>` : ""}
-    </div>` : `<p class="empty">Aucune performance régulière.</p>`}
-    ${strongEvent(a, rk, geo)}
-    ${limitsBlock(a, plan, cad)}
-    ${a.m.length ? honours(a.m) : ""}
-    ${rivalsBlock(id, rk)}
-    ${meetingsBlock(a)}
-    ${progDiscs.length ? `<h2>Progression</h2>
+    ${tabBar("profile", [["apercu", "Aperçu"], goals.trim() && ["objectifs", "Limites et adversaires"], ["progression", "Progression"], ["resultats", "Résultats"]])}
+    ${panel("profile", "apercu", `<h2>Records personnels</h2>
+      ${a.pb.length ? `<div class="cols">
+        ${out.length ? `<div><h3>Plein air</h3>${pbLanes(out, a.s)}</div>` : ""}
+        ${ins.length ? `<div><h3>En salle</h3>${pbLanes(ins, a.s)}</div>` : ""}
+      </div>` : `<p class="empty">Aucune performance régulière.</p>`}
+      ${strongEvent(a, rk, geo)}
+      ${a.m.length ? honours(a.m) : ""}`)}
+    ${goals.trim() ? panel("profile", "objectifs", goals) : ""}
+    ${panel("profile", "progression", `${progDiscs.length ? `<h2>Progression</h2>
       <div class="controls"><label>Épreuve <select id="pd">${progDiscs.map(d => `<option value="${d}">${esc(dName(d))}${D(d)[0] ? " (salle)" : ""}</option>`).join("")}</select></label></div>
-      <div id="chart"></div>` : ""}
-    <h2>Tous les résultats</h2>
-    <div class="controls">
-      <label>Épreuve <select id="fd"><option value="">Toutes</option>${resDiscs.map(d => `<option value="${d}">${esc(dName(d))}${D(d)[0] ? " (salle)" : ""}</option>`).join("")}</select></label>
-      <label>Saison <select id="fy"><option value="">Toutes</option>${seasons.map(y => `<option>${y}</option>`).join("")}</select></label>
-    </div>
-    <div id="res"></div>
-    ${META.full_results ? "" : `<p class="note">Seule la meilleure performance de chaque saison et épreuve est disponible pour l'instant.</p>`}
+      <div id="chart"></div>` : `<p class="empty">Pas encore de progression à montrer.</p>`}
+      ${meetingsBlock(a)}`)}
+    ${panel("profile", "resultats", `<h2>Tous les résultats</h2>
+      <div class="controls">
+        <label>Épreuve <select id="fd"><option value="">Toutes</option>${resDiscs.map(d => `<option value="${d}">${esc(dName(d))}${D(d)[0] ? " (salle)" : ""}</option>`).join("")}</select></label>
+        <label>Saison <select id="fy"><option value="">Toutes</option>${seasons.map(y => `<option>${y}</option>`).join("")}</select></label>
+      </div>
+      <div id="res"></div>
+      ${META.full_results ? "" : `<p class="note">Seule la meilleure performance de chaque saison et épreuve est disponible pour l'instant.</p>`}`)}
     ${META.contact ? `<aside class="feedback"><strong>C'est votre profil, ou vous y voyez une erreur ?</strong>
       <span>${mailLink("Signaler une erreur", `Athlètes suisses : erreur sur le profil de ${a.n}`, "Ce qui est faux (performance, club, canton, année de naissance, homonyme) :")}</span>
       <span>${mailLink("Retirer mon profil", `Athlètes suisses : retrait du profil de ${a.n}`, `Je demande le retrait de mon profil (${a.n}, ${a.by}).`)}</span>
@@ -539,16 +565,17 @@ async function clubPage(cid) {
       <span class="seg" role="group" aria-label="Sexe"><a href="#" data-sex="" aria-current="true">Tous</a><a href="#" data-sex="M">Hommes</a><a href="#" data-sex="W">Femmes</a></span>
       <label>Épreuve <select id="ce"><option value="">Toutes</option>${discs.map(d => `<option value="${d}">${esc(evLabel(d))}</option>`).join("")}</select></label>
     </div>
-    <h2>Le club dans chaque épreuve</h2>
-    <div id="cev"></div>
-    ${near.length ? `<h2>Tout près d'une limite</h2>
+    ${tabBar("club", [["athletes", "Athlètes"], ["rang", "Le club par épreuve"], near.length && ["limites", `Près d'une limite (${near.length})`]])}
+    ${panel("club", "rang", `<h2>Le club dans chaque épreuve</h2>
+    <div id="cev"></div>`)}
+    ${near.length ? panel("club", "limites", `<h2>Tout près d'une limite</h2>
     <div class="tbl-wrap"><table><thead><tr><th>Athlète</th><th>Épreuve</th><th class="r">Meilleure perf.</th><th>Limite</th><th>Écart</th><th></th></tr></thead>
     <tbody>${near.map(n => `<tr><td><a href="${athleteHref(n.pid, n.name)}">${esc(n.name)}</a> <span class="muted num">${n.by}</span></td><td>${esc(evLabel(n.d))}</td>
       <td class="mk r">${fmtVal(n.best, n.d)}</td><td>${esc(n.ch.name)} <span class="num">${esc(n.text)}</span></td><td>à <strong class="num">${fmtGap(n.d, n.gap)}</strong></td>
       <td><a href="#/plan/${n.pid}">Prochaines courses</a></td></tr>`).join("")}</tbody></table></div>
-    <p class="note">Athlètes à 2 % ou moins d'une limite des championnats suisses qu'ils n'ont pas encore réalisée, d'après leur meilleure performance de cette saison ou de la précédente. Limites de la dernière édition publiée, à titre indicatif. « Prochaines courses » ouvre le planificateur pour l'athlète.</p>` : ""}
-    <h2>Athlètes</h2>
-    <div id="cat"></div>
+    <p class="note">Athlètes à 2 % ou moins d'une limite des championnats suisses qu'ils n'ont pas encore réalisée, d'après leur meilleure performance de cette saison ou de la précédente. Limites de la dernière édition publiée, à titre indicatif. « Prochaines courses » ouvre le planificateur pour l'athlète.</p>`) : ""}
+    ${panel("club", "athletes", `<h2>Athlètes</h2>
+    <div id="cat"></div>`)}
     <p class="note">Athlètes majeurs avec un résultat depuis ${Math.min(...years) - 1}, rattachés à leur dernier club connu ; les moins de ${META.min_age} ans ne sont pas affichés. Rangs et meilleures performances : ${seasonsLabel(geo)}, chronométrage électronique et vent régulier. Le rang du club est celui de son meilleur athlète parmi les clubs classés dans l'épreuve.${canton && !c.g[4] ? " Le canton de ce club n'est pas confirmé : son nom et son adresse dans la liste de Swiss Athletics ne concordent pas, ou une seule de ces sources existe." : ""}</p>
     <p class="note">${mailLink("Signaler une erreur sur cette page", `Athlètes suisses : erreur sur la page de ${c.n}`, "Ce qui est faux (canton, athlète qui n'est plus au club, performance) :")}</p>`;
   let sex = "";
@@ -577,7 +604,7 @@ async function clubPage(cid) {
   app.querySelector(".seg").addEventListener("click", e => {
     if (e.target.dataset.sex === undefined) return;
     e.preventDefault(); sex = e.target.dataset.sex;
-    app.querySelectorAll(".seg a").forEach(x => x.setAttribute("aria-current", String(x.dataset.sex === sex)));
+    app.querySelectorAll(".seg a[data-sex]").forEach(x => x.setAttribute("aria-current", String(x.dataset.sex === sex)));
     draw();
   });
   app.querySelector("#ce").addEventListener("change", draw);
@@ -596,13 +623,10 @@ async function cantonsPage(mode) {
   let sortCol = 4, dir = -1;
   app.innerHTML = `
     <section class="profile-head">
-      <h1>Cantons et régions</h1>
+      <h1>${byRegion ? "Régions" : "Cantons"}</h1>
       <p class="lede">Où se trouvent les athlètes et les performances : chaque canton et chaque région d'après le club des athlètes, ${seasonsLabel(geo)}.</p>
     </section>
-    <div class="controls" style="margin-top:20px">
-      <span class="seg"><a href="#/cantons" aria-current="${!byRegion}">Cantons</a><a href="#/cantons/regions" aria-current="${byRegion}">Régions</a></span>
-    </div>
-    <div id="gt"></div>
+    <div id="gt" style="margin-top:20px"></div>
     <p class="note">Un athlète compte pour le canton de son dernier club. Pour ${geo.checked[1]} clubs sur ${geo.checked[0] + geo.checked[1]}, le canton est confirmé : la localité dans le nom du club et l'adresse du club dans la liste des membres de Swiss Athletics${geo.federation_date ? ` (état au ${fmtDate(geo.federation_date)})` : ""} concordent, ou il a été vérifié à la main${geo.checked[0] ? `. Pour les ${geo.checked[0]} autres, les deux sources divergent ou une seule existe : le canton est marqué « à vérifier » sur les pages des clubs` : ""}. Athlètes actifs : majeurs avec un résultat depuis ${Math.min(...geo.years) - 1}. Top 10, podium et meilleure performance suisse : rang dans la liste suisse de la saison, par épreuve et par sexe, dans les épreuves comptant au moins ${geo.min_field} athlètes classés (une place par athlète et par épreuve, salle et plein air séparés). Podiums aux championnats suisses : toutes catégories, saison ${Math.max(...geo.years)}. Les trois régions sont celles des championnats régionaux de Swiss Athletics.${geo.unplaced[1] ? ` ${fmtInt(geo.unplaced[1])} athlètes de ${geo.unplaced[0]} club${geo.unplaced[0] > 1 ? "s" : ""} non situé${geo.unplaced[0] > 1 ? "s" : ""} ne sont comptés nulle part.` : ""} Les athlètes de moins de ${META.min_age} ans ne sont pas comptés. ${mailLink("Signaler une erreur", "Athlètes suisses : erreur dans les cantons", "Ce qui est faux :")}</p>`;
   const draw = () => {
     const sorted = rows.slice().sort((x, y) => (typeof x[sortCol] === "number" ? (x[sortCol] - y[sortCol]) * dir : String(x[sortCol]).localeCompare(String(y[sortCol]), "fr") * dir));
@@ -1146,20 +1170,21 @@ async function planPage(athId) {
     const dAny = anyD(st.ev), evName = dName(dAny), by = byYear();
     const rows = champs.filter(c => eligible(c.age || "", by, +c.start.slice(0, 4)) !== false).map(c => standardRow(c, st.ev, c.indoor && ev.in !== undefined ? ev.in : dAny)).filter(Boolean);
     const season = [...objs.map(o => ({ date: o.start, goal: o })), ...st.picks.map(p => ({ date: p.date, pick: p }))].sort((x, y) => (x.date < y.date ? -1 : 1));
-    out.innerHTML = `
-      ${objs.length ? `<h2>Ma saison</h2>${timeline(objs, st.picks)}
+    out.innerHTML = !objs.length ? `<p class="empty">Cochez au moins un objectif pour voir les courses proposées.</p>` : `
+      ${tabBar("plan", [["courses", "Courses proposées"], ["saison", `Ma saison${st.picks.length ? ` (${st.picks.length})` : ""}`], rows.length && ["limites", "Limites et minima"]])}
+      ${panel("plan", "saison", `${objs.length ? `<h2>Ma saison</h2>${timeline(objs, st.picks)}
         <ul class="season">${season.map(x => x.goal
           ? `<li class="goal"><span class="num">${fmtSpan(x.goal.start, x.goal.end)}</span><span><strong>${esc(x.goal.name)}</strong>${x.goal.place ? ` <span class="muted">· ${esc(x.goal.place)}${x.goal.series && !x.goal.real ? ", date à confirmer" : ""}</span>` : ""}</span></li>`
           : `<li><span class="num">${fmtDay(x.pick.date)}</span><span>${esc(x.pick.name)} <span class="muted">· ${esc(x.pick.venue)}${x.pick.real ? "" : ", date à confirmer"}${x.pick.km ? ` · ${fmtKm(x.pick.km)} de ${esc(x.pick.home)}, environ ${x.pick.chf} CHF aller-retour${x.pick.mode === "plane" ? " en avion" : x.pick.mode === "train" ? " en train" : ""}` : ""}</span> <button type="button" class="link" data-pick="${esc(x.pick.key)}">retirer</button></span></li>`).join("")}</ul>
         ${st.picks.some(p => p.chf) ? `<p class="note">Déplacements des courses choisies : environ <strong class="num">${st.picks.reduce((n, p) => n + (p.chf || 0), 0).toLocaleString("fr-CH")} CHF</strong> aller-retour au total, ${fmtKm(st.picks.reduce((n, p) => n + (p.km || 0), 0) * 2)} parcourus (estimation).</p>` : ""}
-        ${st.picks.length ? "" : `<p class="note">Ajoutez des courses depuis les propositions ci-dessous : elles apparaissent ici, dans l'ordre de la saison.</p>`}` : `<p class="empty">Cochez au moins un objectif pour voir les courses proposées.</p>`}
-      ${objs.map(o => {
+        ${st.picks.length ? "" : `<p class="note">Ajoutez des courses depuis l'onglet « Courses proposées » : elles apparaissent ici, dans l'ordre de la saison.</p>`}` : ""}`)}
+      ${panel("plan", "courses", objs.map(o => {
         const k = o.indoor ? "in" : "out", d = ev[k], doc = docs[k];
         const head = `<section class="list-sec obj"><h2>${esc(o.name)} <span class="muted">· ${fmtSpan(o.start, o.end)}${o.place ? `, ${esc(o.place)}` : ""}</span></h2>`;
         if (d === undefined || !doc) return `${head}<p class="empty">Pas de résultats ${o.indoor ? "en salle" : "en plein air"} pour ${esc(evName)} : aucune proposition pour cet objectif.</p></section>`;
         const lists = candidates(o, doc, d, home), std = o.standards ? o.standards.events.find(x => (x.labels[st.sex] || []).includes(st.ev)) : null;
         return `${head}
-          ${std ? `<p class="limit">${o.standards.kind === "limit" ? "Limite" : "Minima"} ${esc(evName)} : <strong class="num">${esc(std[st.sex])}</strong>, à réaliser du ${fmtDate(o.standards.window[0])} au ${fmtDate(o.standards.window[1])}. <a href="#pmin">Voir les limites</a></p>` : ""}
+          ${std ? `<p class="limit">${o.standards.kind === "limit" ? "Limite" : "Minima"} ${esc(evName)} : <strong class="num">${esc(std[st.sex])}</strong>, à réaliser du ${fmtDate(o.standards.window[0])} au ${fmtDate(o.standards.window[1])}. <a href="#" data-tabid="limites" data-for="plan">Voir les limites</a></p>` : ""}
           ${PHASES.map((ph, pi) => {
             const base = ph.end ? (o.end || o.start) : o.start, id = `${o.id}|${ph.k}`, list = lists[pi], n = open.has(id) ? list.length : 4;
             return `<h3>${ph.name} <span class="muted">· ${fmtDate(addDays(base, ph.from)).slice(0, 6)} au ${fmtDate(addDays(base, ph.to))}</span></h3>
@@ -1168,14 +1193,14 @@ async function planPage(athId) {
                 ${list.length > n ? `<p><button type="button" class="more" data-open="${esc(id)}">Afficher les ${list.length - n} autres</button></p>` : ""}`
                 : `<p class="empty small">Aucune course connue dans cette période avec ces critères.</p>`}`;
           }).join("")}</section>`;
-      }).join("")}
-      ${rows.length ? `<section class="list-sec" id="pmin"><h2>Limites et minima ${esc(evName)}, ${st.sex === "W" ? "femmes" : "hommes"}</h2>
+      }).join(""))}
+      ${rows.length ? panel("plan", "limites", `<section class="list-sec" id="pmin"><h2>Limites et minima ${esc(evName)}, ${st.sex === "W" ? "femmes" : "hommes"}</h2>
         <div class="tbl-wrap"><table><thead><tr><th>Championnat</th><th>Dates</th><th class="r">À réaliser</th><th></th><th class="hide-s">Période de qualification</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
         ${champs.filter(c => c.standards).map(c => `<details class="std"><summary>${esc(c.name)} : toutes les épreuves</summary>
           <p class="note">${esc(c.standards.note || "")} <a href="${esc(c.standards.source)}" rel="noopener">Source</a></p>
           <div class="tbl-wrap"><table><thead><tr><th>Épreuve</th><th class="r">Hommes</th><th class="r">Femmes</th>${c.standards.events.some(e => e.out) ? `<th class="hide-s">Équivalent en plein air</th>` : ""}</tr></thead>
           <tbody>${c.standards.events.map(e => `<tr><td>${esc(e.name)}</td><td class="r num">${esc(e.M)}</td><td class="r num">${esc(e.W)}</td>${c.standards.events.some(x => x.out) ? `<td class="hide-s muted">${e.out ? `${esc(e.out[0])} : ${esc(e.out[1])} / ${esc(e.out[2])}` : ""}</td>` : ""}</tr>`).join("")}</tbody></table></div></details>`).join("")}
-      </section>` : ""}
+      </section>`) : ""}
       <p class="note">Les propositions viennent des résultats des saisons ${META.plan.from} à ${META.plan.to} enregistrés par Swiss Athletics : ce sont les compétitions où des athlètes licenciés en Suisse ont couru, en Suisse comme à l'étranger. Les championnats cantonaux et régionaux sont reconnus à leur nom et proposés pour le canton et la région du lieu de départ ; une compétition réservée à une catégorie d'âge (U16 à U23, masters) n'est proposée qu'aux athlètes de cet âge. « Votre zone » compte les résultats entre votre niveau et votre objectif (à 1,5 % près). Les dates à venir sont reprises du jour habituel de chaque compétition : vérifiez-les auprès de l'organisateur avant de réserver. Distances, durées et prix sont des ordres de grandeur calculés d'après la distance : ni des horaires, ni des tarifs. En Suisse, le trajet est compté en train ; à l'étranger, en train et, dès 350 km, en avion, et le plus rapide des deux sert au filtre « week-end ». Train : environ 20 centimes par kilomètre. Avion : environ 4 h autour du vol, 120 CHF plus 12 centimes par kilomètre.${META.meets ? ` Pour les meetings, courses sur route et cross du calendrier international, avec leurs dates officielles et le niveau qu'il y faut : <a href="#/meetings${st.ath ? "/" + st.ath : ""}">meetings internationaux</a>.` : ""}</p>`;
   }
 
@@ -1227,9 +1252,9 @@ const TOURS = {
   xc: { name: "Cross", full: "Cross Country Tour", levels: ["Gold", "Silver", "Bronze"] },
 };
 async function meetingsPage(athId) {
-  document.title = `Meetings internationaux – ${META.title}`;
+  document.title = `Compétitions internationales – ${META.title}`;
   const [MEETS, CFG, townList] = await Promise.all([optJSON("meets.json"), optJSON("planner.json"), optJSON("towns.json")]);
-  if (!MEETS || !Object.keys(MEETS.events).length) return notFound("Les meetings internationaux ne sont pas encore disponibles.");
+  if (!MEETS || !Object.keys(MEETS.events).length) return notFound("Les compétitions internationales ne sont pas encore disponibles.");
   const TOWNS = new Map();
   [...(townList || []), ...((CFG && CFG.homes) || [])].forEach(t => TOWNS.set(norm(t[0]), t));
   const plan = saved("plan.v2") || {};
@@ -1252,7 +1277,7 @@ async function meetingsPage(athId) {
   const countries = [...new Set(MEETS.series.map(s => s.cc))].sort();
   app.innerHTML = `
     <section class="profile-head">
-      <h1>Meetings internationaux</h1>
+      <h1>Compétitions internationales</h1>
       <p class="lede">Meetings en plein air et en salle, courses sur route et cross du calendrier de World Athletics en Europe : le niveau qu'il a fallu aux dernières éditions, et où votre performance vous aurait placé.</p>
     </section>
     <form id="mf" class="plan-form" onsubmit="return false">
@@ -1375,10 +1400,9 @@ function notFound(msg) {
 async function route() {
   const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   document.querySelectorAll(".top-nav a").forEach(x => x.removeAttribute("aria-current"));
-  const sec = { club: "clubs", canton: "cantons", region: "cantons" }[parts[0]] || parts[0];
-  const section = ["l", "cadres", "plan", "clubs", "cantons", "meetings"].includes(sec) ? `#/${sec}` : "#/";
-  const nav = document.querySelector(`.top-nav a[href="${section}"]`);
-  if (nav && (section !== "#/" || !parts.length)) nav.setAttribute("aria-current", "page");
+  const section = SECTIONS.find(x => x.routes.includes(parts[0] || "")) || SECTIONS[0];
+  const nav = document.querySelector(`.top-nav a[href="${section.href}"]`);
+  if (nav) nav.setAttribute("aria-current", "page");
   window.scrollTo(0, 0);
   try {
     if (parts[0] === "a" && parts[1]) await profile(parts[1]);
@@ -1396,6 +1420,13 @@ async function route() {
     console.error(err);
     app.innerHTML = `<p class="empty">Impossible de charger ces données (${esc(err.message)}). Rechargez la page.</p>`;
   }
+  if (section.sub) {
+    const row = document.createElement("nav");
+    row.className = "subnav";
+    row.setAttribute("aria-label", "Pages de la rubrique");
+    row.innerHTML = section.sub(parts).map(([href, label, on]) => `<a href="${href}"${on ? ' aria-current="page"' : ""}>${label}</a>`).join("");
+    app.prepend(row);
+  }
   if (parts.length) app.focus({ preventScroll: true });
 }
 
@@ -1407,6 +1438,12 @@ async function start() {
   document.getElementById("foot").innerHTML = `
     <p>Site indépendant et non officiel, sans lien avec Swiss Athletics, fait pour compléter ses listes officielles et non les remplacer. Source de toutes les performances : les résultats publics de la base <a href="https://alabus.swiss-athletics.ch/satweb/faces/bestlist.xhtml" rel="noopener">Alabus de Swiss Athletics</a>, dès ${META.first_year} ; courses sur route : listes de World Athletics (parcours certifiés). Dernière performance enregistrée le ${fmtDate(META.last_result)}, mise à jour le ${fmtDate(META.generated)}.</p>
     <p>Seule l'année de naissance est publiée, et les athlètes de moins de ${META.min_age} ans ne sont pas affichés.${META.contact ? ` Pour corriger ou retirer un profil : <a href="mailto:${esc(META.contact)}">${esc(META.contact)}</a>.` : ""}</p>`;
+  app.addEventListener("click", e => {
+    const t = e.target.closest("[data-tabid]");
+    if (!t) return;
+    e.preventDefault();
+    showTab(t.dataset.for || t.closest("[data-tabs]").dataset.tabs, t.dataset.tabid);
+  });
   window.addEventListener("hashchange", route);
   route();
 }
