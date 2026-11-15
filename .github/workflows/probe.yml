@@ -1,12 +1,9 @@
 # Development aid: runs probe/probe.py and prints what public pages look like, to write and check the scrapers.
-# No secrets, no database, nothing is stored. Runs only when probe/ changes or when started by hand.
+# No secrets, no database, nothing is stored. Started by hand (Actions > Probe public pages > Run workflow).
 name: Probe public pages
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ["probe/**", ".github/workflows/probe.yml"]
+  workflow_dispatch:  # started by hand only: a failing look at a page should not look like a failed update
 
 permissions:
   contents: read

@@ -59,8 +59,62 @@ def tables(html):
     return soup
 
 
-# Put the pages to look at here, then push: the "Probe public pages" workflow prints what they contain.
+# Put the pages to look at here, then start the "Probe public pages" workflow: it prints what they contain.
+import collections
+
+CAL = "https://worldathletics.org/competition/calendar-results"
+
+
+def data(c, url, params=None):
+    html = page(c, url, params)
+    m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html or "", re.S)
+    return json.loads(m.group(1))["props"]["pageProps"] if m else None
+
+
 with httpx.Client(headers=UA, timeout=40, follow_redirects=True) as c:
-    html = page(c, "https://worldathletics.org/competition/calendar-results", {"startDate": "2027-05-01", "endDate": "2027-05-07"})
-    if html:
-        next_data(html)
+    pp = data(c, CAL, {"startDate": "2026-02-01", "endDate": "2026-02-07"})
+    ev = (pp or {}).get("initialEvents") or {}
+    groups = (ev.get("options") or {}).get("competitionGroups") or []
+    print("competition groups:", json.dumps(groups, ensure_ascii=False))
+    print("disciplines:", json.dumps((ev.get("options") or {}).get("disciplines"), ensure_ascii=False))
+    for g in groups:
+        if not re.search(r"Indoor Tour|Cross Country Tour|Label Road", g.get("name") or ""):
+            continue
+        pp = data(c, CAL, {"startDate": "2026-01-01", "endDate": "2026-12-31", "regionType": "area", "regionId": "3", "competitionGroupId": str(g["id"])})
+        ev = (pp or {}).get("initialEvents")
+        if not ev:
+            print(g["name"], ": nothing")
+            continue
+        res = ev["results"]
+        print(g["name"], "| hits", ev["hits"], "| levels", dict(collections.Counter(e["competitionSubgroup"] for e in res)),
+              "| categories", dict(collections.Counter(e["rankingCategory"] for e in res)), "| disciplines", dict(collections.Counter(e["disciplines"] for e in res)))
+        for e in res[:4]:
+            print("   ", e["id"], e["startDate"], e["rankingCategory"], "|", e["competitionSubgroup"], "|", e["name"], "|", e["venue"], "|", e["disciplines"], "| results", e["hasResults"])
+        for e in [x for x in res if x["hasResults"]][:2]:
+            rp = data(c, f"{CAL}/results/{e['id']}")
+
+            def find(o):
+                if isinstance(o, dict):
+                    if "eventTitles" in o:
+                        return o
+                    for v in o.values():
+                        r = find(v)
+                        if r:
+                            return r
+                elif isinstance(o, list):
+                    for v in o:
+                        r = find(v)
+                        if r:
+                            return r
+                return None
+            box = find(rp) if rp else None
+            if not box:
+                print("    no results data for", e["name"])
+                continue
+            print("    results of", e["name"], "| days", (box.get("options") or {}).get("days"))
+            for t in box.get("eventTitles") or []:
+                for x in t.get("events") or []:
+                    races = x.get("races") or []
+                    first = (races[0].get("results") or [{}])[0] if races else {}
+                    print("      ", x.get("gender"), "|", x.get("event"), "| races", [(r.get("race"), len(r.get("results") or [])) for r in races][:4],
+                          "| first", first.get("mark"), first.get("place"))
