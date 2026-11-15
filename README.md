@@ -125,18 +125,21 @@ the page proposes races in three windows: 7 to 3 weeks before, 3 weeks to 6 days
 
 ## International meetings (`#/meetings`)
 
-The World Athletics Continental Tour meetings in Europe (Gold, Silver, Bronze, Challenger): for an event and a
-mark, each meeting shows the winner, 3rd, 8th and last classified of its last editions, where the mark would
-have placed, a tag (realistic, a stretch, too strong), the 2027 date when World Athletics has announced it, and
-the trip from the chosen town.
+Competitions in Europe from the World Athletics calendar, in four tabs: the Continental Tour (outdoor meetings),
+the Indoor Tour, the Label Road Races (5 km to marathon) and the Cross Country Tour. For an event and a mark,
+each competition shows the winner, 3rd, 8th (and 20th on the road) of its last editions, where the mark would have
+placed, a tag (realistic, a stretch, too strong), the next date when World Athletics has announced it, the level
+and ranking category, and the trip from the chosen town. "Fastest" sorts by the 8th mark of the last edition.
 
 * `meets_data.py` and the "International meetings" workflow read the public calendar of worldathletics.org
-  (4 pages a season) and the results page of each past edition (one page each, read once, 60 a night until
-  all are in). `meets.json` keeps meeting, date, place, level and the marks per event, no names.
+  (a few pages per tour and season) and the results page of each past edition (one page each, read once, 120 a
+  night until all are in). `meets.json` keeps competition, date, place, level and the marks per event (the best
+  80), no names.
 * "Realistic" compares the mark with the athlete four fifths down the last edition's result, because the very
   last are often pacemakers. It says nothing about getting an entry: meetings pick their fields.
-* `meets_info.json` is for what no page lists: who to write to and the entry deadline of a meeting, by hand.
-* Not included yet: indoor meetings, meetings outside the Continental Tour, and ranking points per place.
+* Cross country has no comparable marks: the page shows the long race of each edition, times for what they are.
+* `meets_info.json` is for what no page lists: who to write to and the entry deadline, by hand.
+* Not included: competitions outside these four tours, and ranking points per place.
 
 ## One-time setup (already done for pmcintyr/athletes)
 

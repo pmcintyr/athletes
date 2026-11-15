@@ -836,8 +836,10 @@ function travel(home, v) {
   if (km < 8) return { km, h: 0.5, chf: 0, modes: [] };
   const abroad = v[3] && v[3] !== "SUI";
   const modes = [{ k: "train", name: "Train", h: 1 + km / 95, chf: r5(km * 0.4) }];  // 1 h to and from stations, about 20 ct/km
+  const far = abroad && air > 1500;  // Seville, Tenerife, Helsinki: nobody takes the train
   // plane: about 4 h around the flight (airport, check-in, transfer), 750 km/h in the air, 120 CHF + 12 ct/km return
   if (abroad && air >= 350) modes.push({ k: "plane", name: "Avion", h: 4 + air / 750, chf: r5(120 + air * 0.12) });
+  if (far) modes.shift();
   const best = modes.reduce((x, y) => (y.h < x.h ? y : x));
   return { km, h: best.h, chf: best.chf, mode: best.k, modes };
 }
@@ -1297,7 +1299,7 @@ async function meetingsPage(athId) {
     saved("meet.v2", st);
     const marks = (xc || d !== null ? await optJSON(`meets/${st.tour}-${st.sex}${xc ? "" : d}.json`) : null) || {};
     if (my !== seq) return;
-    const fmt = v => (xc ? fmtClock(v) : fmtVal(v, d)), better = (a, b) => (xc ? a < b : sortv(d, a) < sortv(d, b));
+    const fmt = v => (xc || st.tour === "road" ? fmtClock(v) : fmtVal(v, d)), better = (a, b) => (xc ? a < b : sortv(d, a) < sortv(d, b));
     const mine = xc ? null : markValue(st.mark), year = new Date().getFullYear(), today = toISO(Date.now());
     const rows = [];
     MEETS.series.forEach((s, i) => {
