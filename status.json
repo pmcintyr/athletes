@@ -1,11 +1,11 @@
 {
- "started": "2026-11-14T09:05:15+00:00",
+ "started": "2026-11-20T10:10:00+00:00",
  "scrape_ok": true,
  "message": "",
- "finished": "2026-11-14T09:31:51+00:00",
+ "finished": "2026-11-20T10:39:41+00:00",
  "lists_downloaded": 668,
- "last_refresh": "2026-11-14",
- "results_stored": 3660074,
+ "last_refresh": "2026-11-20",
+ "results_stored": 3660076,
  "seasons_complete": [
   2006,
   2007,
